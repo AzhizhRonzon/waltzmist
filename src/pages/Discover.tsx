@@ -4,6 +4,7 @@ import SwipeCard, { SwipeActions, ProfileData } from "../components/SwipeCard";
 import MatchOverlay from "../components/MatchOverlay";
 import FallingPetals from "../components/FallingPetals";
 import CountdownTimer from "../components/CountdownTimer";
+import BottomNav from "../components/BottomNav";
 import { Sparkles } from "lucide-react";
 
 // Mock profiles for demo
@@ -74,7 +75,7 @@ const DiscoverPage = () => {
   };
 
   return (
-    <div className="min-h-screen breathing-bg flex flex-col relative">
+    <div className="min-h-screen breathing-bg flex flex-col relative pb-20">
       <FallingPetals count={10} />
 
       {/* Header */}
@@ -90,7 +91,7 @@ const DiscoverPage = () => {
 
       {/* Card Stack */}
       <div className="flex-1 relative z-10 px-5 pb-2">
-        <div className="relative w-full h-full max-w-sm mx-auto" style={{ minHeight: "65vh" }}>
+        <div className="relative w-full h-full max-w-sm mx-auto" style={{ minHeight: "60vh" }}>
           {profiles.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-center">
               <Sparkles className="w-12 h-12 text-blossom/40 mb-4" />
@@ -120,13 +121,15 @@ const DiscoverPage = () => {
 
       {/* Actions */}
       {profiles.length > 0 && (
-        <div className="relative z-20 pb-8">
+        <div className="relative z-20 pb-4">
           <SwipeActions
             onLeft={() => handleSwipe("left")}
             onRight={() => handleSwipe("right")}
           />
         </div>
       )}
+
+      <BottomNav />
 
       {/* Match Overlay */}
       <AnimatePresence>
