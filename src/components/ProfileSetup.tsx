@@ -1,0 +1,275 @@
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { ChevronRight, Camera, AlertTriangle } from "lucide-react";
+
+interface ProfileFormData {
+  name: string;
+  program: string;
+  section: string;
+  maggiMetric: number;
+  favoriteTrip: string;
+  partySpot: string;
+  redFlag: string;
+}
+
+interface ProfileSetupProps {
+  onComplete: (data: ProfileFormData) => void;
+}
+
+const PROGRAMS = ["PGP24", "PGP25", "PGPEx", "IPM"];
+const SECTIONS = ["1", "2", "3", "4", "5", "6"];
+
+const ProfileSetup = ({ onComplete }: ProfileSetupProps) => {
+  const [step, setStep] = useState(0);
+  const [form, setForm] = useState<ProfileFormData>({
+    name: "",
+    program: "",
+    section: "",
+    maggiMetric: 50,
+    favoriteTrip: "",
+    partySpot: "",
+    redFlag: "",
+  });
+
+  const steps = [
+    // Step 0: Basics
+    <motion.div
+      key="basics"
+      initial={{ opacity: 0, x: 40 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -40 }}
+      className="space-y-6"
+    >
+      <div>
+        <h2 className="font-display text-2xl font-bold text-foreground mb-1">
+          The Anti-CV
+        </h2>
+        <p className="text-muted-foreground text-sm font-body">
+          No convocation photos allowed.
+        </p>
+      </div>
+
+      {/* Photo upload placeholder */}
+      <div className="flex gap-3">
+        {[0, 1, 2, 3].map((i) => (
+          <div
+            key={i}
+            className="w-20 h-20 rounded-2xl glass flex items-center justify-center cursor-pointer hover:border-blossom/30 transition-colors border border-transparent"
+          >
+            <Camera className="w-5 h-5 text-muted-foreground" />
+          </div>
+        ))}
+      </div>
+
+      <div>
+        <label className="text-sm text-muted-foreground font-body block mb-2">
+          What do they call you?
+        </label>
+        <input
+          type="text"
+          value={form.name}
+          onChange={(e) => setForm({ ...form, name: e.target.value })}
+          placeholder="Your name"
+          className="w-full bg-input rounded-xl px-4 py-3 text-foreground font-body placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-blossom/30"
+          maxLength={50}
+        />
+      </div>
+
+      <div>
+        <label className="text-sm text-muted-foreground font-body block mb-2">
+          Program
+        </label>
+        <div className="flex flex-wrap gap-2">
+          {PROGRAMS.map((p) => (
+            <button
+              key={p}
+              onClick={() => setForm({ ...form, program: p })}
+              className={`pill ${form.program === p ? "pill-active" : ""}`}
+            >
+              {p}
+            </button>
+          ))}
+        </div>
+      </div>
+    </motion.div>,
+
+    // Step 1: Vibe Check
+    <motion.div
+      key="vibe"
+      initial={{ opacity: 0, x: 40 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -40 }}
+      className="space-y-6"
+    >
+      <div>
+        <h2 className="font-display text-2xl font-bold text-foreground mb-1">
+          The Vibe Check
+        </h2>
+        <p className="text-muted-foreground text-sm font-body">
+          Let's see what you're really about.
+        </p>
+      </div>
+
+      {/* Maggi Metric */}
+      <div className="glass rounded-2xl p-4">
+        <label className="text-sm text-muted-foreground font-body block mb-3">
+          🍜 Late-Night Maggi Metric
+        </label>
+        <input
+          type="range"
+          min="0"
+          max="100"
+          value={form.maggiMetric}
+          onChange={(e) => setForm({ ...form, maggiMetric: Number(e.target.value) })}
+          className="w-full accent-blossom"
+        />
+        <div className="flex justify-between mt-1">
+          <span className="text-xs text-muted-foreground">Silent Slurper</span>
+          <span className="text-xs text-muted-foreground">Philosophy Spouter</span>
+        </div>
+      </div>
+
+      {/* Section Pride */}
+      <div>
+        <label className="text-sm text-muted-foreground font-body block mb-2">
+          Section Pride
+        </label>
+        <p className="text-xs text-muted-foreground/70 mb-2 italic font-body">
+          "Choose wisely. Cross-batch dating is high risk, high reward."
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {SECTIONS.map((s) => (
+            <button
+              key={s}
+              onClick={() => setForm({ ...form, section: s })}
+              className={`pill ${form.section === s ? "pill-active" : ""}`}
+            >
+              Section {s}
+            </button>
+          ))}
+        </div>
+      </div>
+    </motion.div>,
+
+    // Step 2: Shillong Essentials
+    <motion.div
+      key="essentials"
+      initial={{ opacity: 0, x: 40 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -40 }}
+      className="space-y-6"
+    >
+      <div>
+        <h2 className="font-display text-2xl font-bold text-foreground mb-1">
+          Shillong Essentials
+        </h2>
+        <p className="text-muted-foreground text-sm font-body">
+          What makes you, you — in the Clouds.
+        </p>
+      </div>
+
+      <div>
+        <label className="text-sm text-muted-foreground font-body block mb-2">
+          My favorite trip so far
+        </label>
+        <input
+          type="text"
+          value={form.favoriteTrip}
+          onChange={(e) => setForm({ ...form, favoriteTrip: e.target.value })}
+          placeholder="Cherrapunji in the rain..."
+          className="w-full bg-input rounded-xl px-4 py-3 text-foreground font-body placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-blossom/30"
+          maxLength={100}
+        />
+      </div>
+
+      <div>
+        <label className="text-sm text-muted-foreground font-body block mb-2">
+          Go-to party spot
+        </label>
+        <input
+          type="text"
+          value={form.partySpot}
+          onChange={(e) => setForm({ ...form, partySpot: e.target.value })}
+          placeholder="Cloud 9, obviously..."
+          className="w-full bg-input rounded-xl px-4 py-3 text-foreground font-body placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-blossom/30"
+          maxLength={100}
+        />
+      </div>
+
+      {/* Red Flag */}
+      <div className="glass rounded-2xl p-4 border border-maroon/20">
+        <label className="text-sm text-maroon font-body flex items-center gap-2 mb-2">
+          <AlertTriangle className="w-4 h-4" />
+          The Red Flag (Optional)
+        </label>
+        <p className="text-xs text-muted-foreground/70 mb-2 font-body">
+          "I honestly believe that..."
+        </p>
+        <input
+          type="text"
+          value={form.redFlag}
+          onChange={(e) => setForm({ ...form, redFlag: e.target.value })}
+          placeholder="...finance is a personality trait."
+          className="w-full bg-input rounded-xl px-4 py-3 text-foreground font-body placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-maroon/30"
+          maxLength={120}
+        />
+      </div>
+    </motion.div>,
+  ];
+
+  const canProceed = () => {
+    if (step === 0) return form.name.trim() && form.program;
+    if (step === 1) return form.section;
+    return true;
+  };
+
+  const handleNext = () => {
+    if (step < steps.length - 1) {
+      setStep(step + 1);
+    } else {
+      onComplete(form);
+    }
+  };
+
+  return (
+    <div className="min-h-screen breathing-bg flex flex-col">
+      {/* Progress */}
+      <div className="px-6 pt-6 pb-2">
+        <div className="flex gap-2">
+          {steps.map((_, i) => (
+            <div
+              key={i}
+              className="flex-1 h-1 rounded-full transition-all duration-500"
+              style={{
+                background: i <= step
+                  ? "linear-gradient(90deg, hsl(var(--blossom)), hsl(var(--glow)))"
+                  : "hsl(var(--secondary))",
+              }}
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 px-6 py-6 overflow-y-auto">
+        <AnimatePresence mode="wait">{steps[step]}</AnimatePresence>
+      </div>
+
+      {/* Action */}
+      <div className="px-6 pb-8">
+        <motion.button
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          onClick={handleNext}
+          disabled={!canProceed()}
+          className="btn-waltz w-full flex items-center justify-center gap-2 text-lg disabled:opacity-40 disabled:cursor-not-allowed disabled:transform-none"
+        >
+          {step < steps.length - 1 ? "Next" : "Start the Waltz"}
+          <ChevronRight className="w-5 h-5" />
+        </motion.button>
+      </div>
+    </div>
+  );
+};
+
+export default ProfileSetup;
