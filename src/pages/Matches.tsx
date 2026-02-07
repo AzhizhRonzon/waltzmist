@@ -2,11 +2,12 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import FallingPetals from "../components/FallingPetals";
 import BottomNav from "../components/BottomNav";
-import { MOCK_MATCHES } from "../data/mockChat";
+import { useWaltzStore } from "../context/WaltzStore";
 import { Heart } from "lucide-react";
 
 const MatchesPage = () => {
   const navigate = useNavigate();
+  const { matches } = useWaltzStore();
 
   return (
     <div className="min-h-screen breathing-bg flex flex-col relative pb-20">
@@ -24,7 +25,7 @@ const MatchesPage = () => {
 
       {/* Matches Grid */}
       <div className="flex-1 relative z-10 px-5 mt-4">
-        {MOCK_MATCHES.length === 0 ? (
+        {matches.length === 0 ? (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -48,7 +49,7 @@ const MatchesPage = () => {
           </motion.div>
         ) : (
           <div className="grid grid-cols-2 gap-3">
-            {MOCK_MATCHES.map((match, i) => (
+            {matches.map((match, i) => (
               <motion.button
                 key={match.id}
                 initial={{ opacity: 0, scale: 0.9 }}
@@ -59,20 +60,20 @@ const MatchesPage = () => {
               >
                 <div className="relative aspect-[3/4]">
                   <img
-                    src={match.photo}
-                    alt={match.name}
+                    src={match.profile.photos[0]}
+                    alt={match.profile.name}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-card via-transparent to-transparent" />
                   <div className="absolute bottom-3 left-3 right-3">
                     <h3 className="font-display text-lg text-foreground leading-tight">
-                      {match.name}
+                      {match.profile.name}
                     </h3>
                     <p className="text-[11px] text-muted-foreground font-body">
-                      {match.batch}
+                      {match.profile.batch}
                     </p>
                   </div>
-                  {match.isOnline && (
+                  {match.profile.isOnline && (
                     <div
                       className="absolute top-3 right-3 w-3 h-3 rounded-full border-2 border-card"
                       style={{ background: "hsl(140 70% 50%)" }}
