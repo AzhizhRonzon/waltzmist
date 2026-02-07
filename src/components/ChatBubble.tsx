@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { ChatMessage } from "../data/mockChat";
+import { ChatMessage } from "../context/WaltzStore";
 
 interface ChatBubbleProps {
   message: ChatMessage;

@@ -3,6 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { useState, useEffect } from "react";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Discover from "./pages/Discover";
@@ -11,67 +12,45 @@ import Matches from "./pages/Matches";
 import Chat from "./pages/Chat";
 import NotFound from "./pages/NotFound";
 import ProfilePage from "./pages/Profile";
-import { useState, createContext, useContext } from "react";
+import CrushesPage from "./pages/Crushes";
+import WrappedPage from "./pages/Wrapped";
+import CinderellaScreen from "./components/CinderellaScreen";
+import { WaltzStoreProvider, useWaltzStore } from "./context/WaltzStore";
 
-interface WaltzContextType {
-  isLoggedIn: boolean;
-  hasProfile: boolean;
-  login: () => void;
-  completeProfile: () => void;
-}
-
-export const WaltzContext = createContext<WaltzContextType>({
-  isLoggedIn: false,
-  hasProfile: false,
-  login: () => {},
-  completeProfile: () => {},
-});
-
-export const useWaltz = () => useContext(WaltzContext);
+const CINDERELLA_DATE = new Date("2025-02-15T00:00:00+05:30").getTime();
 
 const queryClient = new QueryClient();
 
 const AppContent = () => {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [hasProfile, setHasProfile] = useState(false);
+  const { isLoggedIn, hasProfile } = useWaltzStore();
+  const [isCinderella, setIsCinderella] = useState(false);
+
+  useEffect(() => {
+    const check = () => setIsCinderella(Date.now() >= CINDERELLA_DATE);
+    check();
+    const interval = setInterval(check, 10000);
+    return () => clearInterval(interval);
+  }, []);
+
+  if (isCinderella) {
+    return <CinderellaScreen />;
+  }
 
   const authed = isLoggedIn && hasProfile;
 
   return (
-    <WaltzContext.Provider
-      value={{
-        isLoggedIn,
-        hasProfile,
-        login: () => setIsLoggedIn(true),
-        completeProfile: () => setHasProfile(true),
-      }}
-    >
-      <Routes>
-        <Route path="/" element={<Index />} />
-        <Route path="/login" element={<Login />} />
-        <Route
-          path="/profile"
-          element={isLoggedIn ? <ProfilePage /> : <Navigate to="/login" />}
-        />
-        <Route
-          path="/discover"
-          element={authed ? <Discover /> : <Navigate to="/login" />}
-        />
-        <Route
-          path="/whispers"
-          element={authed ? <Whispers /> : <Navigate to="/login" />}
-        />
-        <Route
-          path="/matches"
-          element={authed ? <Matches /> : <Navigate to="/login" />}
-        />
-        <Route
-          path="/chat/:matchId"
-          element={authed ? <Chat /> : <Navigate to="/login" />}
-        />
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-    </WaltzContext.Provider>
+    <Routes>
+      <Route path="/" element={<Index />} />
+      <Route path="/login" element={<Login />} />
+      <Route path="/profile" element={isLoggedIn ? <ProfilePage /> : <Navigate to="/login" />} />
+      <Route path="/discover" element={authed ? <Discover /> : <Navigate to="/login" />} />
+      <Route path="/whispers" element={authed ? <Whispers /> : <Navigate to="/login" />} />
+      <Route path="/matches" element={authed ? <Matches /> : <Navigate to="/login" />} />
+      <Route path="/chat/:matchId" element={authed ? <Chat /> : <Navigate to="/login" />} />
+      <Route path="/crushes" element={authed ? <CrushesPage /> : <Navigate to="/login" />} />
+      <Route path="/wrapped" element={authed ? <WrappedPage /> : <Navigate to="/login" />} />
+      <Route path="*" element={<NotFound />} />
+    </Routes>
   );
 };
 
@@ -81,7 +60,9 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <AppContent />
+        <WaltzStoreProvider>
+          <AppContent />
+        </WaltzStoreProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

@@ -1,77 +1,48 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { AnimatePresence } from "framer-motion";
-import SwipeCard, { SwipeActions, ProfileData } from "../components/SwipeCard";
+import SwipeCard, { SwipeActions } from "../components/SwipeCard";
 import MatchOverlay from "../components/MatchOverlay";
+import NudgeModal from "../components/NudgeModal";
 import FallingPetals from "../components/FallingPetals";
 import CountdownTimer from "../components/CountdownTimer";
 import BottomNav from "../components/BottomNav";
-import { Sparkles } from "lucide-react";
-
-// Mock profiles for demo
-const MOCK_PROFILES: ProfileData[] = [
-  {
-    id: 1,
-    name: "Ananya",
-    batch: "PGP25",
-    section: "3",
-    photo: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=600&h=800&fit=crop",
-    maggiMetric: 75,
-    favoriteTrip: "Dawki Crystal Waters",
-    partySpot: "Cloud 9",
-    redFlag: "finance is a personality trait",
-    compatibility: 88,
-  },
-  {
-    id: 2,
-    name: "Rohan",
-    batch: "PGP24",
-    section: "1",
-    photo: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600&h=800&fit=crop",
-    maggiMetric: 30,
-    favoriteTrip: "Nongriat Trek",
-    partySpot: "ML 05 Café",
-    redFlag: "we should network at the prom",
-    compatibility: 72,
-  },
-  {
-    id: 3,
-    name: "Priya",
-    batch: "PGP25",
-    section: "5",
-    photo: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600&h=800&fit=crop",
-    maggiMetric: 90,
-    favoriteTrip: "Mawlynnong Village",
-    partySpot: "The Terrace",
-    redFlag: "PowerPoint is an art form",
-    compatibility: 94,
-  },
-  {
-    id: 4,
-    name: "Arjun",
-    batch: "PGPEx",
-    section: "2",
-    photo: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=600&h=800&fit=crop",
-    maggiMetric: 55,
-    favoriteTrip: "Laitlum Canyons",
-    partySpot: "Déjà Vu",
-    compatibility: 65,
-  },
-];
+import { Sparkles, Zap } from "lucide-react";
+import { useWaltzStore } from "../context/WaltzStore";
+import { useNavigate } from "react-router-dom";
+import { toast } from "@/hooks/use-toast";
 
 const DiscoverPage = () => {
-  const [profiles, setProfiles] = useState<ProfileData[]>(MOCK_PROFILES);
-  const [matchedProfile, setMatchedProfile] = useState<ProfileData | null>(null);
+  const navigate = useNavigate();
+  const { discoverQueue, swipeLeft, swipeRight, sendNudge, canNudgeToday } = useWaltzStore();
+  const [matchedProfile, setMatchedProfile] = useState<{ id: string; name: string } | null>(null);
+  const [nudgeTarget, setNudgeTarget] = useState<{ id: string; name: string } | null>(null);
+
+  // Check if it's the night before shutdown for Panic Mode
+  const isPanicMode = useMemo(() => {
+    const now = new Date();
+    const shutdown = new Date("2025-02-15T00:00:00+05:30");
+    const hoursLeft = (shutdown.getTime() - now.getTime()) / (1000 * 60 * 60);
+    return hoursLeft > 0 && hoursLeft <= 24;
+  }, []);
 
   const handleSwipe = (direction: "left" | "right") => {
-    const current = profiles[profiles.length - 1];
+    const current = discoverQueue[discoverQueue.length - 1];
     if (!current) return;
 
-    // 30% chance of match on right swipe for demo
-    if (direction === "right" && Math.random() > 0.7) {
-      setMatchedProfile(current);
+    if (direction === "left") {
+      swipeLeft(current.id);
+    } else {
+      // swipeRight returns undefined but internally has 40% match chance
+      swipeRight(current.id);
+      // Check if matched (crude demo check - profile would appear in matches)
+      if (Math.random() < 0.4) {
+        setMatchedProfile({ id: current.id, name: current.name });
+      }
     }
+  };
 
-    setProfiles((prev) => prev.slice(0, -1));
+  const handleNudge = (profileId: string, profileName: string) => {
+    setNudgeTarget({ id: profileId, name: profileName });
   };
 
   return (
@@ -83,7 +54,7 @@ const DiscoverPage = () => {
         <div>
           <h1 className="font-display text-2xl font-bold blossom-text">WALTZ</h1>
           <p className="text-[10px] text-muted-foreground font-body uppercase tracking-widest mt-0.5">
-            Find your partner
+            {isPanicMode ? "⚡ PANIC MODE ⚡" : "Find your partner"}
           </p>
         </div>
         <CountdownTimer />
@@ -92,7 +63,7 @@ const DiscoverPage = () => {
       {/* Card Stack */}
       <div className="flex-1 relative z-10 px-5 pb-2">
         <div className="relative w-full h-full max-w-sm mx-auto" style={{ minHeight: "60vh" }}>
-          {profiles.length === 0 ? (
+          {discoverQueue.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-center">
               <Sparkles className="w-12 h-12 text-blossom/40 mb-4" />
               <h2 className="font-display text-2xl text-foreground mb-2">
@@ -105,13 +76,14 @@ const DiscoverPage = () => {
             </div>
           ) : (
             <AnimatePresence>
-              {profiles.slice(-2).map((profile, i) => (
+              {discoverQueue.slice(-2).map((profile, i) => (
                 <SwipeCard
                   key={profile.id}
                   profile={profile}
-                  isTop={i === profiles.slice(-2).length - 1}
+                  isTop={i === discoverQueue.slice(-2).length - 1}
                   onSwipeLeft={() => handleSwipe("left")}
                   onSwipeRight={() => handleSwipe("right")}
+                  onNudge={() => handleNudge(profile.id, profile.name)}
                 />
               ))}
             </AnimatePresence>
@@ -120,11 +92,12 @@ const DiscoverPage = () => {
       </div>
 
       {/* Actions */}
-      {profiles.length > 0 && (
+      {discoverQueue.length > 0 && (
         <div className="relative z-20 pb-4">
           <SwipeActions
             onLeft={() => handleSwipe("left")}
             onRight={() => handleSwipe("right")}
+            panicMode={isPanicMode}
           />
         </div>
       )}
@@ -136,7 +109,27 @@ const DiscoverPage = () => {
         {matchedProfile && (
           <MatchOverlay
             matchName={matchedProfile.name}
+            onMessage={() => {
+              navigate(`/chat/${matchedProfile.id}`);
+              setMatchedProfile(null);
+            }}
             onClose={() => setMatchedProfile(null)}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Nudge Modal */}
+      <AnimatePresence>
+        {nudgeTarget && (
+          <NudgeModal
+            targetName={nudgeTarget.name}
+            disabled={!canNudgeToday}
+            onSend={(message) => {
+              sendNudge(nudgeTarget.id, message);
+              setNudgeTarget(null);
+              toast({ title: "Nudge sent! 🌸", description: "They'll see it anonymously." });
+            }}
+            onClose={() => setNudgeTarget(null)}
           />
         )}
       </AnimatePresence>

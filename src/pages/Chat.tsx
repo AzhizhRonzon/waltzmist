@@ -1,27 +1,25 @@
 import { useState, useRef, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Send } from "lucide-react";
+import { ArrowLeft, Send, ShieldAlert } from "lucide-react";
 import ChatBubble from "../components/ChatBubble";
 import CountdownTimer from "../components/CountdownTimer";
 import FallingPetals from "../components/FallingPetals";
-import { MOCK_MATCHES, MOCK_CONVERSATIONS, ChatMessage } from "../data/mockChat";
+import ReportModal from "../components/ReportModal";
+import { useWaltzStore } from "../context/WaltzStore";
+import type { ChatMessage } from "../context/WaltzStore";
 
 const ChatPage = () => {
   const { matchId } = useParams<{ matchId: string }>();
   const navigate = useNavigate();
+  const { matches, conversations, sendMessage, reportUser } = useWaltzStore();
   const [newMessage, setNewMessage] = useState("");
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [showReport, setShowReport] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const match = MOCK_MATCHES.find((m) => m.id === matchId);
-
-  useEffect(() => {
-    if (matchId && MOCK_CONVERSATIONS[matchId]) {
-      setMessages([...MOCK_CONVERSATIONS[matchId]]);
-    }
-  }, [matchId]);
+  const match = matches.find((m) => m.id === matchId);
+  const messages = matchId ? conversations[matchId] || [] : [];
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -36,17 +34,8 @@ const ChatPage = () => {
 
   const handleSend = () => {
     const trimmed = newMessage.trim();
-    if (!trimmed) return;
-
-    const msg: ChatMessage = {
-      id: `new-${Date.now()}`,
-      senderId: "me",
-      text: trimmed,
-      timestamp: new Date(),
-      status: "sent",
-    };
-
-    setMessages((prev) => [...prev, msg]);
+    if (!trimmed || !matchId) return;
+    sendMessage(matchId, trimmed);
     setNewMessage("");
     inputRef.current?.focus();
   };
@@ -85,11 +74,11 @@ const ChatPage = () => {
 
           <div className="relative">
             <img
-              src={match.photo}
-              alt={match.name}
+              src={match.profile.photos[0]}
+              alt={match.profile.name}
               className="w-10 h-10 rounded-full object-cover border-2 border-blossom/30"
             />
-            {match.isOnline && (
+            {match.profile.isOnline && (
               <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-background"
                 style={{ background: "hsl(140 70% 50%)" }}
               />
@@ -98,12 +87,20 @@ const ChatPage = () => {
 
           <div className="flex-1">
             <h3 className="font-display text-lg text-foreground leading-tight">
-              {match.name}
+              {match.profile.name}
             </h3>
             <p className="text-[11px] text-muted-foreground font-body">
-              {match.batch} {match.isOnline ? "· Online" : ""}
+              {match.profile.batch} {match.profile.isOnline ? "· Online" : ""}
             </p>
           </div>
+
+          {/* Report button */}
+          <button
+            onClick={() => setShowReport(true)}
+            className="p-1.5 rounded-full hover:bg-secondary/50 transition-colors"
+          >
+            <ShieldAlert className="w-4 h-4 text-muted-foreground" />
+          </button>
         </div>
       </header>
 
@@ -175,6 +172,17 @@ const ChatPage = () => {
           </motion.button>
         </div>
       </div>
+
+      {/* Report Modal */}
+      <AnimatePresence>
+        {showReport && (
+          <ReportModal
+            targetName={match.profile.name}
+            onReport={(reason) => reportUser(match.id, reason)}
+            onClose={() => setShowReport(false)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 };

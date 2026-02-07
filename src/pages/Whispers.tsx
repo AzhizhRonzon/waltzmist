@@ -3,12 +3,14 @@ import { motion } from "framer-motion";
 import FallingPetals from "../components/FallingPetals";
 import BottomNav from "../components/BottomNav";
 import CountdownTimer from "../components/CountdownTimer";
-import { MOCK_MATCHES } from "../data/mockChat";
-import { MessageCircle } from "lucide-react";
+import { useWaltzStore } from "../context/WaltzStore";
+import { MessageCircle, Zap } from "lucide-react";
 
 const WhispersPage = () => {
   const navigate = useNavigate();
-  const hasMatches = MOCK_MATCHES.length > 0;
+  const { matches, nudgesReceived, markNudgeSeen } = useWaltzStore();
+  const hasMatches = matches.length > 0;
+  const unseenNudges = nudgesReceived.filter((n) => !n.seen);
 
   return (
     <div className="min-h-screen breathing-bg flex flex-col relative pb-20">
@@ -36,8 +38,46 @@ const WhispersPage = () => {
         </div>
       </header>
 
-      {/* Match List or Empty State */}
-      <div className="flex-1 relative z-10 px-5 mt-4">
+      <div className="flex-1 relative z-10 px-5 mt-4 space-y-4">
+        {/* Received Nudges */}
+        {unseenNudges.length > 0 && (
+          <div>
+            <h2 className="font-display text-sm text-blossom mb-2 flex items-center gap-1.5">
+              <Zap className="w-3.5 h-3.5" />
+              Anonymous Nudges
+            </h2>
+            <div className="space-y-2">
+              {unseenNudges.map((nudge, i) => (
+                <motion.div
+                  key={nudge.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.08 }}
+                  className="glass rounded-2xl p-4 border border-blossom/20 blossom-glow"
+                >
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="text-[10px] text-blossom uppercase tracking-widest font-body mb-1">
+                        Someone nudged you 👀
+                      </p>
+                      <p className="text-sm text-foreground font-body italic">
+                        "{nudge.message}"
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => markNudgeSeen(nudge.id)}
+                      className="text-[10px] text-muted-foreground font-body hover:text-foreground transition-colors"
+                    >
+                      Dismiss
+                    </button>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Match List or Empty State */}
         {!hasMatches ? (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -63,7 +103,7 @@ const WhispersPage = () => {
           </motion.div>
         ) : (
           <div className="space-y-2">
-            {MOCK_MATCHES.map((match, i) => (
+            {matches.map((match, i) => (
               <motion.button
                 key={match.id}
                 initial={{ opacity: 0, y: 15 }}
@@ -75,11 +115,11 @@ const WhispersPage = () => {
                 {/* Avatar */}
                 <div className="relative flex-shrink-0">
                   <img
-                    src={match.photo}
-                    alt={match.name}
+                    src={match.profile.photos[0]}
+                    alt={match.profile.name}
                     className="w-14 h-14 rounded-full object-cover border-2 border-blossom/20"
                   />
-                  {match.isOnline && (
+                  {match.profile.isOnline && (
                     <div
                       className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-card"
                       style={{ background: "hsl(140 70% 50%)" }}
@@ -91,7 +131,7 @@ const WhispersPage = () => {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between">
                     <h3 className="font-display text-base text-foreground">
-                      {match.name}
+                      {match.profile.name}
                     </h3>
                     {match.lastMessageTime && (
                       <span className="text-[10px] text-muted-foreground font-body">
@@ -109,7 +149,7 @@ const WhispersPage = () => {
                         Say something risky...
                       </p>
                     )}
-                    {match.unread && match.unread > 0 ? (
+                    {match.unread > 0 && (
                       <span
                         className="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold text-primary-foreground"
                         style={{
@@ -118,7 +158,7 @@ const WhispersPage = () => {
                       >
                         {match.unread}
                       </span>
-                    ) : null}
+                    )}
                   </div>
                 </div>
               </motion.button>

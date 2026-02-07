@@ -1,15 +1,15 @@
 import { useNavigate } from "react-router-dom";
 import ProfileSetup from "../components/ProfileSetup";
-import { useWaltz } from "../App";
+import { useWaltzStore } from "../context/WaltzStore";
 
 const ProfilePage = () => {
   const navigate = useNavigate();
-  const { completeProfile } = useWaltz();
+  const { completeProfile } = useWaltzStore();
 
   return (
     <ProfileSetup
-      onComplete={() => {
-        completeProfile();
+      onComplete={(data) => {
+        completeProfile(data);
         navigate("/discover");
       }}
     />

@@ -3,10 +3,11 @@ import { Heart } from "lucide-react";
 
 interface MatchOverlayProps {
   matchName: string;
+  onMessage: () => void;
   onClose: () => void;
 }
 
-const MatchOverlay = ({ matchName, onClose }: MatchOverlayProps) => {
+const MatchOverlay = ({ matchName, onMessage, onClose }: MatchOverlayProps) => {
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -59,7 +60,7 @@ const MatchOverlay = ({ matchName, onClose }: MatchOverlayProps) => {
         </p>
 
         <div className="flex flex-col gap-3">
-          <button className="btn-waltz text-lg" onClick={onClose}>
+          <button className="btn-waltz text-lg" onClick={onMessage}>
             Send a Message
           </button>
           <button className="btn-ghost-waltz" onClick={onClose}>

@@ -1,28 +1,17 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Heart, X, Sparkles } from "lucide-react";
-
-export interface ProfileData {
-  id: number;
-  name: string;
-  batch: string;
-  section: string;
-  photo: string;
-  maggiMetric: number;
-  favoriteTrip: string;
-  partySpot: string;
-  redFlag?: string;
-  compatibility: number;
-}
+import { Heart, X, Sparkles, Zap } from "lucide-react";
+import type { ProfileData } from "../context/WaltzStore";
 
 interface SwipeCardProps {
   profile: ProfileData;
   onSwipeLeft: () => void;
   onSwipeRight: () => void;
+  onNudge?: () => void;
   isTop: boolean;
 }
 
-const SwipeCard = ({ profile, onSwipeLeft, onSwipeRight, isTop }: SwipeCardProps) => {
+const SwipeCard = ({ profile, onSwipeLeft, onSwipeRight, onNudge, isTop }: SwipeCardProps) => {
   const [dragX, setDragX] = useState(0);
 
   const getSwipeDirection = () => {
@@ -59,7 +48,7 @@ const SwipeCard = ({ profile, onSwipeLeft, onSwipeRight, isTop }: SwipeCardProps
         {/* Photo area */}
         <div className="relative h-[55%] overflow-hidden">
           <img
-            src={profile.photo}
+            src={profile.photos[0]}
             alt={profile.name}
             className="w-full h-full object-cover"
           />
@@ -94,6 +83,17 @@ const SwipeCard = ({ profile, onSwipeLeft, onSwipeRight, isTop }: SwipeCardProps
             <Sparkles className="w-3.5 h-3.5 text-blossom" />
             <span className="text-sm font-bold text-blossom">{profile.compatibility}%</span>
           </div>
+
+          {/* Nudge button */}
+          {onNudge && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onNudge(); }}
+              className="absolute top-4 left-4 glass rounded-full px-3 py-1.5 flex items-center gap-1.5 hover:bg-blossom/10 transition-colors"
+            >
+              <Zap className="w-3.5 h-3.5 text-blossom" />
+              <span className="text-[11px] font-body text-blossom">Nudge</span>
+            </button>
+          )}
 
           {/* Name overlay */}
           <div className="absolute bottom-4 left-5 right-5">
@@ -162,9 +162,11 @@ const SwipeCard = ({ profile, onSwipeLeft, onSwipeRight, isTop }: SwipeCardProps
 export const SwipeActions = ({
   onLeft,
   onRight,
+  panicMode = false,
 }: {
   onLeft: () => void;
   onRight: () => void;
+  panicMode?: boolean;
 }) => (
   <div className="flex items-center justify-center gap-6 mt-4">
     <motion.button
@@ -180,12 +182,24 @@ export const SwipeActions = ({
       whileHover={{ scale: 1.1 }}
       whileTap={{ scale: 0.9 }}
       onClick={onRight}
-      className="w-20 h-20 rounded-full flex items-center justify-center blossom-glow transition-all"
+      className={`w-20 h-20 rounded-full flex items-center justify-center transition-all ${panicMode ? "animate-pulse" : ""}`}
       style={{
-        background: "linear-gradient(135deg, hsl(var(--blossom)), hsl(var(--glow)))",
+        background: panicMode
+          ? "linear-gradient(135deg, hsl(0 80% 55%), hsl(var(--blossom)))"
+          : "linear-gradient(135deg, hsl(var(--blossom)), hsl(var(--glow)))",
+        boxShadow: panicMode
+          ? "0 0 30px hsl(0 80% 55% / 0.4)"
+          : "0 0 40px hsl(var(--blossom) / 0.15)",
       }}
     >
-      <Heart className="w-9 h-9 text-primary-foreground" fill="currentColor" />
+      <div className="flex flex-col items-center">
+        <Heart className="w-8 h-8 text-primary-foreground" fill="currentColor" />
+        {panicMode && (
+          <span className="text-[8px] font-bold text-primary-foreground mt-0.5 uppercase tracking-wider">
+            PANIC
+          </span>
+        )}
+      </div>
     </motion.button>
   </div>
 );

@@ -3,14 +3,14 @@ import { motion } from "framer-motion";
 import { Mail, Lock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import FallingPetals from "../components/FallingPetals";
-import { useWaltz } from "../App";
+import { useWaltzStore } from "../context/WaltzStore";
 
 const LoginPage = () => {
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const { login } = useWaltz();
+  const { login } = useWaltzStore();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
