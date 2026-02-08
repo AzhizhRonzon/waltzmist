@@ -17,7 +17,7 @@ import WrappedPage from "./pages/Wrapped";
 import CinderellaScreen from "./components/CinderellaScreen";
 import { WaltzStoreProvider, useWaltzStore } from "./context/WaltzStore";
 
-const CINDERELLA_DATE = new Date("2025-02-15T00:00:00+05:30").getTime();
+const CINDERELLA_DATE = new Date("2026-02-15T00:00:00+05:30").getTime();
 
 const queryClient = new QueryClient();
 

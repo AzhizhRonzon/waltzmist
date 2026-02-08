@@ -99,7 +99,7 @@ const SwipeCard = ({ profile, onSwipeLeft, onSwipeRight, onNudge, isTop }: Swipe
           <div className="absolute bottom-4 left-5 right-5">
             <h2 className="text-3xl font-display font-bold text-foreground">{profile.name}</h2>
             <p className="text-sm text-muted-foreground font-body mt-0.5">
-              {profile.batch} · Section {profile.section}
+              {profile.batch}{profile.section ? ` · Section ${profile.section}` : ""}
             </p>
           </div>
         </div>
