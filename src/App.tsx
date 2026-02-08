@@ -15,6 +15,7 @@ import ProfilePage from "./pages/Profile";
 import CrushesPage from "./pages/Crushes";
 import WrappedPage from "./pages/Wrapped";
 import CinderellaScreen from "./components/CinderellaScreen";
+import ColdWeatherOverlay, { useColdWeatherMode } from "./components/ColdWeatherOverlay";
 import { WaltzStoreProvider, useWaltzStore } from "./context/WaltzStore";
 
 const CINDERELLA_DATE = new Date("2026-02-15T00:00:00+05:30").getTime();
@@ -24,6 +25,7 @@ const queryClient = new QueryClient();
 const AppContent = () => {
   const { isLoggedIn, hasProfile } = useWaltzStore();
   const [isCinderella, setIsCinderella] = useState(false);
+  const { isCold, temp } = useColdWeatherMode();
 
   useEffect(() => {
     const check = () => setIsCinderella(Date.now() >= CINDERELLA_DATE);
@@ -32,25 +34,26 @@ const AppContent = () => {
     return () => clearInterval(interval);
   }, []);
 
-  if (isCinderella) {
-    return <CinderellaScreen />;
-  }
+  if (isCinderella) return <CinderellaScreen />;
 
   const authed = isLoggedIn && hasProfile;
 
   return (
-    <Routes>
-      <Route path="/" element={<Index />} />
-      <Route path="/login" element={<Login />} />
-      <Route path="/profile" element={isLoggedIn ? <ProfilePage /> : <Navigate to="/login" />} />
-      <Route path="/discover" element={authed ? <Discover /> : <Navigate to="/login" />} />
-      <Route path="/whispers" element={authed ? <Whispers /> : <Navigate to="/login" />} />
-      <Route path="/matches" element={authed ? <Matches /> : <Navigate to="/login" />} />
-      <Route path="/chat/:matchId" element={authed ? <Chat /> : <Navigate to="/login" />} />
-      <Route path="/crushes" element={authed ? <CrushesPage /> : <Navigate to="/login" />} />
-      <Route path="/wrapped" element={authed ? <WrappedPage /> : <Navigate to="/login" />} />
-      <Route path="*" element={<NotFound />} />
-    </Routes>
+    <>
+      {isCold && <ColdWeatherOverlay temp={temp} />}
+      <Routes>
+        <Route path="/" element={<Index />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/profile" element={isLoggedIn ? <ProfilePage /> : <Navigate to="/login" />} />
+        <Route path="/discover" element={authed ? <Discover /> : <Navigate to="/login" />} />
+        <Route path="/whispers" element={authed ? <Whispers /> : <Navigate to="/login" />} />
+        <Route path="/matches" element={authed ? <Matches /> : <Navigate to="/login" />} />
+        <Route path="/chat/:matchId" element={authed ? <Chat /> : <Navigate to="/login" />} />
+        <Route path="/crushes" element={authed ? <CrushesPage /> : <Navigate to="/login" />} />
+        <Route path="/wrapped" element={authed ? <WrappedPage /> : <Navigate to="/login" />} />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </>
   );
 };
 
