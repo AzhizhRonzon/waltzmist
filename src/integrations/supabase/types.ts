@@ -97,6 +97,7 @@ export type Database = {
       }
       messages: {
         Row: {
+          audio_url: string | null
           created_at: string
           id: string
           match_id: string
@@ -105,6 +106,7 @@ export type Database = {
           text: string
         }
         Insert: {
+          audio_url?: string | null
           created_at?: string
           id?: string
           match_id: string
@@ -113,6 +115,7 @@ export type Database = {
           text: string
         }
         Update: {
+          audio_url?: string | null
           created_at?: string
           id?: string
           match_id?: string
@@ -318,6 +321,12 @@ export type Database = {
     Functions: {
       can_send_nudge_today: { Args: { p_sender_id: string }; Returns: boolean }
       crush_count: { Args: { p_sender_id: string }; Returns: number }
+      get_campus_stats: { Args: never; Returns: Json }
+      get_secret_admirer_hints: { Args: { p_user_id: string }; Returns: Json }
+      get_secret_admirers_count: {
+        Args: { p_user_id: string }
+        Returns: number
+      }
       is_match: { Args: { user_a: string; user_b: string }; Returns: boolean }
       is_match_participant: {
         Args: { p_match_id: string; p_user_id: string }

@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { AnimatePresence } from "framer-motion";
 import SwipeCard, { SwipeActions } from "../components/SwipeCard";
 import MatchOverlay from "../components/MatchOverlay";
@@ -6,17 +6,24 @@ import NudgeModal from "../components/NudgeModal";
 import FallingPetals from "../components/FallingPetals";
 import CountdownTimer from "../components/CountdownTimer";
 import BottomNav from "../components/BottomNav";
-import { Sparkles } from "lucide-react";
+import WhoLikedMe from "../components/WhoLikedMe";
+import SkeletonCard from "../components/Skeletons";
+import { Sparkles, Settings } from "lucide-react";
 import { useWaltzStore } from "../context/WaltzStore";
 import { useNavigate } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
+import { playMatchSound, playSwipeSound } from "@/lib/sounds";
+import ProfileEditModal from "@/components/ProfileEditModal";
 
 const DiscoverPage = () => {
   const navigate = useNavigate();
-  const { discoverQueue, swipeLeft, swipeRight, sendNudge, canNudgeToday } = useWaltzStore();
+  const { discoverQueue, swipeLeft, swipeRight, sendNudge, canNudgeToday, dataLoading, secretAdmirerCount, secretAdmirerHints, fetchSecretAdmirers } = useWaltzStore();
   const [matchedProfile, setMatchedProfile] = useState<{ id: string; name: string } | null>(null);
   const [nudgeTarget, setNudgeTarget] = useState<{ id: string; name: string } | null>(null);
   const [swiping, setSwiping] = useState(false);
+  const [showEditProfile, setShowEditProfile] = useState(false);
+
+  useEffect(() => { fetchSecretAdmirers(); }, []);
 
   const isPanicMode = useMemo(() => {
     const now = new Date();
@@ -28,13 +35,14 @@ const DiscoverPage = () => {
   const handleSwipe = async (direction: "left" | "right") => {
     const current = discoverQueue[discoverQueue.length - 1];
     if (!current || swiping) return;
-
     setSwiping(true);
+    playSwipeSound();
     if (direction === "left") {
       await swipeLeft(current.id);
     } else {
       const matched = await swipeRight(current.id);
       if (matched) {
+        playMatchSound();
         setMatchedProfile({ id: current.id, name: current.name });
       }
     }
@@ -52,12 +60,24 @@ const DiscoverPage = () => {
             {isPanicMode ? "⚡ PANIC MODE ⚡" : "Find your partner"}
           </p>
         </div>
-        <CountdownTimer />
+        <div className="flex items-center gap-3">
+          <button onClick={() => setShowEditProfile(true)} className="p-2 rounded-full hover:bg-secondary/50 transition-colors">
+            <Settings className="w-4 h-4 text-muted-foreground" />
+          </button>
+          <CountdownTimer />
+        </div>
       </header>
+
+      {/* Who liked me teaser */}
+      <div className="relative z-10 px-5">
+        <WhoLikedMe count={secretAdmirerCount} hints={secretAdmirerHints} />
+      </div>
 
       <div className="flex-1 relative z-10 px-5 pb-2">
         <div className="relative w-full h-full max-w-sm mx-auto" style={{ minHeight: "60vh" }}>
-          {discoverQueue.length === 0 ? (
+          {dataLoading ? (
+            <SkeletonCard />
+          ) : discoverQueue.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-center">
               <Sparkles className="w-12 h-12 text-blossom/40 mb-4" />
               <h2 className="font-display text-2xl text-foreground mb-2">No More Cards</h2>
@@ -80,7 +100,7 @@ const DiscoverPage = () => {
         </div>
       </div>
 
-      {discoverQueue.length > 0 && (
+      {discoverQueue.length > 0 && !dataLoading && (
         <div className="relative z-20 pb-4">
           <SwipeActions onLeft={() => handleSwipe("left")} onRight={() => handleSwipe("right")} panicMode={isPanicMode} />
         </div>
@@ -111,6 +131,10 @@ const DiscoverPage = () => {
             onClose={() => setNudgeTarget(null)}
           />
         )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showEditProfile && <ProfileEditModal onClose={() => setShowEditProfile(false)} />}
       </AnimatePresence>
     </div>
   );

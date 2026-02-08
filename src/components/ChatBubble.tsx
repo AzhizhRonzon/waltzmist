@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { ChatMessage } from "../context/WaltzStore";
+import { AudioPlayer } from "./VoiceRecorder";
 
 interface ChatBubbleProps {
   message: ChatMessage;
@@ -42,14 +43,14 @@ const ChatBubble = ({ message, isOwn }: ChatBubbleProps) => {
             : "1px solid hsl(var(--glass-border) / 0.2)",
         }}
       >
-        <p className={isOwn ? "text-blossom-soft" : "text-foreground"}>
-          {message.text}
-        </p>
-        <div
-          className={`flex items-center gap-0.5 mt-1 ${
-            isOwn ? "justify-end" : "justify-start"
-          }`}
-        >
+        {message.audioUrl ? (
+          <AudioPlayer src={message.audioUrl} />
+        ) : (
+          <p className={isOwn ? "text-blossom-soft" : "text-foreground"}>
+            {message.text}
+          </p>
+        )}
+        <div className={`flex items-center gap-0.5 mt-1 ${isOwn ? "justify-end" : "justify-start"}`}>
           <span className="text-[10px] text-muted-foreground">
             {formatTime(message.timestamp)}
           </span>
