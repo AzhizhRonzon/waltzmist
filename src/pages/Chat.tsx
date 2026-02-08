@@ -7,12 +7,11 @@ import CountdownTimer from "../components/CountdownTimer";
 import FallingPetals from "../components/FallingPetals";
 import ReportModal from "../components/ReportModal";
 import { useWaltzStore } from "../context/WaltzStore";
-import type { ChatMessage } from "../context/WaltzStore";
 
 const ChatPage = () => {
   const { matchId } = useParams<{ matchId: string }>();
   const navigate = useNavigate();
-  const { matches, conversations, sendMessage, reportUser } = useWaltzStore();
+  const { matches, conversations, sendMessage, loadConversation, reportUser } = useWaltzStore();
   const [newMessage, setNewMessage] = useState("");
   const [showReport, setShowReport] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -21,30 +20,36 @@ const ChatPage = () => {
   const match = matches.find((m) => m.id === matchId);
   const messages = matchId ? conversations[matchId] || [] : [];
 
+  // Load conversation on mount
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
+    if (matchId) loadConversation(matchId);
+  }, [matchId]);
+
+  useEffect(() => {
+    if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [messages]);
 
   if (!match) {
-    navigate("/whispers");
-    return null;
+    return (
+      <div className="min-h-screen breathing-bg flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-muted-foreground font-body">Match not found</p>
+          <button onClick={() => navigate("/whispers")} className="btn-waltz mt-4">Back</button>
+        </div>
+      </div>
+    );
   }
 
-  const handleSend = () => {
+  const handleSend = async () => {
     const trimmed = newMessage.trim();
     if (!trimmed || !matchId) return;
-    sendMessage(matchId, trimmed);
     setNewMessage("");
+    await sendMessage(matchId, trimmed);
     inputRef.current?.focus();
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); }
   };
 
   return (
@@ -53,87 +58,43 @@ const ChatPage = () => {
 
       {/* Chat Header */}
       <header className="relative z-20 glass-strong border-b border-border/20">
-        {/* Countdown bar */}
         <div className="px-4 pt-3 pb-2 flex items-center justify-center">
           <div className="flex items-center gap-2">
-            <span className="text-[10px] text-muted-foreground font-body uppercase tracking-widest">
-              Waltz Night in
-            </span>
+            <span className="text-[10px] text-muted-foreground font-body uppercase tracking-widest">Waltz Night in</span>
             <CountdownTimer />
           </div>
         </div>
-
-        {/* Profile bar */}
         <div className="px-4 pb-3 flex items-center gap-3">
-          <button
-            onClick={() => navigate("/whispers")}
-            className="p-1.5 rounded-full hover:bg-secondary/50 transition-colors"
-          >
+          <button onClick={() => navigate("/whispers")} className="p-1.5 rounded-full hover:bg-secondary/50 transition-colors">
             <ArrowLeft className="w-5 h-5 text-foreground" />
           </button>
-
           <div className="relative">
-            <img
-              src={match.profile.photos[0]}
-              alt={match.profile.name}
-              className="w-10 h-10 rounded-full object-cover border-2 border-blossom/30"
-            />
-            {match.profile.isOnline && (
-              <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-background"
-                style={{ background: "hsl(140 70% 50%)" }}
-              />
-            )}
+            <img src={match.profile.photos[0]} alt={match.profile.name} className="w-10 h-10 rounded-full object-cover border-2 border-blossom/30" />
           </div>
-
           <div className="flex-1">
-            <h3 className="font-display text-lg text-foreground leading-tight">
-              {match.profile.name}
-            </h3>
-            <p className="text-[11px] text-muted-foreground font-body">
-              {match.profile.batch} {match.profile.isOnline ? "· Online" : ""}
-            </p>
+            <h3 className="font-display text-lg text-foreground leading-tight">{match.profile.name}</h3>
+            <p className="text-[11px] text-muted-foreground font-body">{match.profile.batch}</p>
           </div>
-
-          {/* Report button */}
-          <button
-            onClick={() => setShowReport(true)}
-            className="p-1.5 rounded-full hover:bg-secondary/50 transition-colors"
-          >
+          <button onClick={() => setShowReport(true)} className="p-1.5 rounded-full hover:bg-secondary/50 transition-colors">
             <ShieldAlert className="w-4 h-4 text-muted-foreground" />
           </button>
         </div>
       </header>
 
       {/* Messages */}
-      <div
-        ref={scrollRef}
-        className="flex-1 overflow-y-auto px-4 py-4 relative z-10"
-      >
+      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 relative z-10">
         {messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center py-20">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.5 }}
-            >
+            <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5 }}>
               <div className="text-5xl mb-4">🌸</div>
-              <h3 className="font-display text-xl text-foreground mb-2">
-                New Match!
-              </h3>
-              <p className="text-muted-foreground font-body text-sm max-w-[250px]">
-                Don't just stare. <br />
-                Say something risky.
-              </p>
+              <h3 className="font-display text-xl text-foreground mb-2">New Match!</h3>
+              <p className="text-muted-foreground font-body text-sm max-w-[250px]">Don't just stare.<br />Say something risky.</p>
             </motion.div>
           </div>
         ) : (
           <AnimatePresence>
             {messages.map((msg) => (
-              <ChatBubble
-                key={msg.id}
-                message={msg}
-                isOwn={msg.senderId === "me"}
-              />
+              <ChatBubble key={msg.id} message={msg} isOwn={msg.senderId !== match.profile.id} />
             ))}
           </AnimatePresence>
         )}
@@ -158,27 +119,18 @@ const ChatPage = () => {
             onClick={handleSend}
             disabled={!newMessage.trim()}
             className="p-2 rounded-full transition-all disabled:opacity-30"
-            style={{
-              background: newMessage.trim()
-                ? "linear-gradient(135deg, hsl(var(--blossom)), hsl(var(--glow)))"
-                : "transparent",
-            }}
+            style={{ background: newMessage.trim() ? "linear-gradient(135deg, hsl(var(--blossom)), hsl(var(--glow)))" : "transparent" }}
           >
-            <Send
-              className={`w-4 h-4 ${
-                newMessage.trim() ? "text-primary-foreground" : "text-muted-foreground"
-              }`}
-            />
+            <Send className={`w-4 h-4 ${newMessage.trim() ? "text-primary-foreground" : "text-muted-foreground"}`} />
           </motion.button>
         </div>
       </div>
 
-      {/* Report Modal */}
       <AnimatePresence>
         {showReport && (
           <ReportModal
             targetName={match.profile.name}
-            onReport={(reason) => reportUser(match.id, reason)}
+            onReport={(reason) => reportUser(match.profile.id, reason)}
             onClose={() => setShowReport(false)}
           />
         )}

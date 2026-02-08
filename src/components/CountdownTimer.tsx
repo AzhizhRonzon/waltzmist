@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-const WALTZ_DATE = new Date("2025-02-14T00:00:00+05:30").getTime();
+const WALTZ_DATE = new Date("2026-02-14T00:00:00+05:30").getTime();
 
 interface TimeLeft {
   days: number;

@@ -1,4 +1,7 @@
-import { createContext, useContext, useState, useCallback, ReactNode } from "react";
+import { createContext, useContext, useState, useCallback, useEffect, useRef, ReactNode } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import type { Session } from "@supabase/supabase-js";
+import type { Tables } from "@/integrations/supabase/types";
 
 // ─── Types ───────────────────────────────────────────────────────
 export interface ProfileData {
@@ -6,6 +9,8 @@ export interface ProfileData {
   name: string;
   batch: string;
   section: string;
+  sex: string;
+  age: number;
   photos: string[];
   maggiMetric: number;
   favoriteTrip: string;
@@ -17,6 +22,7 @@ export interface ProfileData {
 
 export interface MatchData {
   id: string;
+  matchUuid: string;
   profile: ProfileData;
   matchedAt: Date;
   lastMessage?: string;
@@ -58,6 +64,7 @@ export interface ReportData {
   timestamp: Date;
 }
 
+// ─── Constants ───────────────────────────────────────────────────
 export const NUDGE_PRESETS = [
   "I saw you in the library and you weren't even studying.",
   "Your playlist is probably better than mine.",
@@ -73,75 +80,6 @@ export const CRUSH_HINTS = [
   "We have a mutual friend",
 ];
 
-// ─── Mock Profile Pool ──────────────────────────────────────────
-export const ALL_PROFILES: ProfileData[] = [
-  {
-    id: "p1", name: "Ananya", batch: "PGP25", section: "3",
-    photos: ["https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=600&h=800&fit=crop"],
-    maggiMetric: 75, favoriteTrip: "Dawki Crystal Waters", partySpot: "Cloud 9",
-    redFlag: "finance is a personality trait", compatibility: 88, isOnline: true,
-  },
-  {
-    id: "p2", name: "Rohan", batch: "PGP24", section: "1",
-    photos: ["https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600&h=800&fit=crop"],
-    maggiMetric: 30, favoriteTrip: "Nongriat Trek", partySpot: "ML 05 Café",
-    redFlag: "we should network at the prom", compatibility: 72, isOnline: false,
-  },
-  {
-    id: "p3", name: "Priya", batch: "PGP25", section: "5",
-    photos: ["https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600&h=800&fit=crop"],
-    maggiMetric: 90, favoriteTrip: "Mawlynnong Village", partySpot: "The Terrace",
-    redFlag: "PowerPoint is an art form", compatibility: 94, isOnline: true,
-  },
-  {
-    id: "p4", name: "Arjun", batch: "PGPEx", section: "2",
-    photos: ["https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=600&h=800&fit=crop"],
-    maggiMetric: 55, favoriteTrip: "Laitlum Canyons", partySpot: "Déjà Vu",
-    compatibility: 65, isOnline: false,
-  },
-  {
-    id: "p5", name: "Meera", batch: "PGP25", section: "4",
-    photos: ["https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=600&h=800&fit=crop"],
-    maggiMetric: 82, favoriteTrip: "Sohra Waterfall", partySpot: "Café Shillong",
-    redFlag: "morning runs are self-care", compatibility: 79, isOnline: true,
-  },
-  {
-    id: "p6", name: "Karan", batch: "IPM", section: "1",
-    photos: ["https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=600&h=800&fit=crop"],
-    maggiMetric: 45, favoriteTrip: "Umiam Lake", partySpot: "Platinum Lounge",
-    redFlag: "hustle culture is a lifestyle", compatibility: 61, isOnline: false,
-  },
-  {
-    id: "p7", name: "Diya", batch: "PGP24", section: "6",
-    photos: ["https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=600&h=800&fit=crop"],
-    maggiMetric: 68, favoriteTrip: "Double Decker Bridge", partySpot: "Dylan's Café",
-    redFlag: "astrology is real science", compatibility: 83, isOnline: true,
-  },
-  {
-    id: "p8", name: "Vikram", batch: "PGPEx", section: "3",
-    photos: ["https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=600&h=800&fit=crop"],
-    maggiMetric: 35, favoriteTrip: "Police Bazaar at night", partySpot: "Cloud 9",
-    compatibility: 58, isOnline: false,
-  },
-];
-
-// ─── Mock Conversations ─────────────────────────────────────────
-const INITIAL_CONVERSATIONS: Record<string, ChatMessage[]> = {
-  p1: [
-    { id: "c1", senderId: "p1", text: "Hey! I saw your Maggi Metric was through the roof 😄", timestamp: new Date(Date.now() - 1000 * 60 * 30), status: "read" },
-    { id: "c2", senderId: "me", text: "Haha guilty as charged. 2 AM philosophy sessions are my thing", timestamp: new Date(Date.now() - 1000 * 60 * 25), status: "read" },
-    { id: "c3", senderId: "p1", text: "Perfect. I need someone to debate whether Maggi is better with cheese or without", timestamp: new Date(Date.now() - 1000 * 60 * 10), status: "read" },
-    { id: "c4", senderId: "me", text: "Without, obviously. Cheese is for pizzas, not Maggi 🍕", timestamp: new Date(Date.now() - 1000 * 60 * 5), status: "read" },
-    { id: "c5", senderId: "p1", text: "See you at the Waltz? 🌸", timestamp: new Date(Date.now() - 1000 * 60 * 2), status: "sent" },
-  ],
-  p3: [
-    { id: "c7", senderId: "me", text: "I saw your red flag and I have to say… PowerPoint IS an art form", timestamp: new Date(Date.now() - 1000 * 60 * 90), status: "read" },
-    { id: "c8", senderId: "p3", text: "FINALLY someone gets it! Custom animations, colour theory, the whole nine yards", timestamp: new Date(Date.now() - 1000 * 60 * 80), status: "read" },
-    { id: "c9", senderId: "p3", text: "Your playlist is probably better than mine", timestamp: new Date(Date.now() - 1000 * 60 * 60), status: "read" },
-  ],
-};
-
-// ─── Stats for Heat Meter ────────────────────────────────────────
 export const HEAT_STATS = {
   mostActiveProgram: "PGP25",
   busiestHour: "11 PM",
@@ -151,42 +89,82 @@ export const HEAT_STATS = {
   topPrompt: "finance is a personality trait",
 };
 
-// ─── Context Interface ───────────────────────────────────────────
+// ─── Helpers ─────────────────────────────────────────────────────
+function dbProfileToApp(row: Tables<'profiles'>, compatibility = 50): ProfileData {
+  return {
+    id: row.id,
+    name: row.name,
+    batch: row.program,
+    section: row.section || "",
+    sex: row.sex,
+    age: row.age,
+    photos: (row.photo_urls && row.photo_urls.length > 0)
+      ? row.photo_urls
+      : [`https://api.dicebear.com/9.x/avataaars/svg?seed=${row.id}`],
+    maggiMetric: row.maggi_metric ?? 50,
+    favoriteTrip: row.favorite_trip || "",
+    partySpot: row.party_spot || "",
+    redFlag: row.red_flag || undefined,
+    compatibility,
+    isOnline: false,
+  };
+}
+
+function computeCompat(my: Tables<'profiles'>, other: Tables<'profiles'>): number {
+  let s = 50;
+  if (my.section && other.section && my.section === other.section) s += 10;
+  if (Math.abs((my.maggi_metric ?? 50) - (other.maggi_metric ?? 50)) < 20) s += 15;
+  if (my.program === other.program) s += 5;
+  if (my.sex !== other.sex) s += 10;
+  s += Math.floor(Math.random() * 10);
+  return Math.min(s, 99);
+}
+
+function timeAgo(d: string): string {
+  const ms = Date.now() - new Date(d).getTime();
+  const m = Math.floor(ms / 60000);
+  if (m < 1) return "Just now";
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  return `${Math.floor(h / 24)}d ago`;
+}
+
+// ─── Context Interface ──────────────────────────────────────────
 interface WaltzStoreContextType {
-  // Auth & Profile
+  session: Session | null;
   isLoggedIn: boolean;
   hasProfile: boolean;
   myProfile: ProfileData | null;
-  login: () => void;
-  completeProfile: (data: Partial<ProfileData>) => void;
+  loading: boolean;
 
-  // Discovery
+  signUp: (email: string, password: string) => Promise<{ error: string | null }>;
+  signIn: (email: string, password: string) => Promise<{ error: string | null }>;
+  signOut: () => Promise<void>;
+  completeProfile: (data: Record<string, any>) => Promise<void>;
+
   discoverQueue: ProfileData[];
-  swipeLeft: (profileId: string) => void;
-  swipeRight: (profileId: string) => void;
+  swipeLeft: (profileId: string) => Promise<void>;
+  swipeRight: (profileId: string) => Promise<boolean>;
 
-  // Matches
   matches: MatchData[];
   conversations: Record<string, ChatMessage[]>;
-  sendMessage: (matchId: string, text: string) => void;
+  sendMessage: (profileId: string, text: string) => Promise<void>;
+  loadConversation: (profileId: string) => Promise<void>;
 
-  // Nudges
   nudgesSent: NudgeData[];
   nudgesReceived: NudgeData[];
   canNudgeToday: boolean;
-  sendNudge: (toId: string, message: string) => void;
-  markNudgeSeen: (nudgeId: string) => void;
+  sendNudge: (toId: string, message: string) => Promise<void>;
+  markNudgeSeen: (nudgeId: string) => Promise<void>;
 
-  // Crushes
   crushesSent: CrushData[];
   crushesReceived: CrushData[];
-  sendCrush: (toId: string, hint: string) => boolean;
-  guessCrush: (crushId: string, guessId: string) => boolean;
+  sendCrush: (toId: string, hint: string) => Promise<boolean>;
+  guessCrush: (crushId: string, guessId: string) => Promise<boolean>;
 
-  // Reports
-  reportUser: (userId: string, reason: string) => void;
-
-  // Stats
+  reportUser: (userId: string, reason: string) => Promise<void>;
+  allProfiles: ProfileData[];
   getWrappedStats: () => { matchCount: number; crushesSent: number; crushesReceived: number; topPrompt: string };
 }
 
@@ -200,181 +178,268 @@ export const useWaltzStore = () => {
 
 // ─── Provider ────────────────────────────────────────────────────
 export const WaltzStoreProvider = ({ children }: { children: ReactNode }) => {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [hasProfile, setHasProfile] = useState(false);
+  const [session, setSession] = useState<Session | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [myProfileRow, setMyProfileRow] = useState<Tables<'profiles'> | null>(null);
   const [myProfile, setMyProfile] = useState<ProfileData | null>(null);
-
-  // Discovery: use profiles not yet matched/swiped
-  const [swipedIds, setSwipedIds] = useState<Set<string>>(new Set());
-  const [matchedIds, setMatchedIds] = useState<Set<string>>(new Set(["p1", "p3"])); // pre-matched for demo
-
-  const [matches, setMatches] = useState<MatchData[]>([
-    {
-      id: "p1", profile: ALL_PROFILES[0], matchedAt: new Date(Date.now() - 1000 * 60 * 60),
-      lastMessage: "See you at the Waltz? 🌸", lastMessageTime: "2m ago", unread: 1,
-    },
-    {
-      id: "p3", profile: ALL_PROFILES[2], matchedAt: new Date(Date.now() - 1000 * 60 * 120),
-      lastMessage: "Your playlist is probably better than mine", lastMessageTime: "1h ago", unread: 0,
-    },
-    {
-      id: "p4", profile: ALL_PROFILES[3], matchedAt: new Date(Date.now() - 1000 * 60 * 180),
-      lastMessage: "", lastMessageTime: "", unread: 0,
-    },
-  ]);
-
-  const [conversations, setConversations] = useState<Record<string, ChatMessage[]>>(INITIAL_CONVERSATIONS);
-
-  // Nudges
+  const [allProfileRows, setAllProfileRows] = useState<Tables<'profiles'>[]>([]);
+  const [discoverQueue, setDiscoverQueue] = useState<ProfileData[]>([]);
+  const [matches, setMatches] = useState<MatchData[]>([]);
+  const [conversations, setConversations] = useState<Record<string, ChatMessage[]>>({});
   const [nudgesSent, setNudgesSent] = useState<NudgeData[]>([]);
-  const [nudgesReceived, setNudgesReceived] = useState<NudgeData[]>([
-    { id: "nr1", fromId: "p5", toId: "me", message: NUDGE_PRESETS[1], sentAt: new Date(Date.now() - 1000 * 60 * 45), seen: false },
-  ]);
-
-  const canNudgeToday = !nudgesSent.some((n) => {
-    const today = new Date();
-    const sent = new Date(n.sentAt);
-    return sent.toDateString() === today.toDateString();
-  });
-
-  // Crushes
+  const [nudgesReceived, setNudgesReceived] = useState<NudgeData[]>([]);
   const [crushesSent, setCrushesSent] = useState<CrushData[]>([]);
-  const [crushesReceived, setCrushesReceived] = useState<CrushData[]>([
-    { id: "cr1", fromId: "p7", toId: "me", hint: "Someone from a different section", sentAt: new Date(Date.now() - 1000 * 60 * 120), guessesLeft: 3, revealed: false },
-  ]);
+  const [crushesReceived, setCrushesReceived] = useState<CrushData[]>([]);
 
-  const [reports, setReports] = useState<ReportData[]>([]);
+  const matchesRef = useRef<MatchData[]>([]);
+  useEffect(() => { matchesRef.current = matches; }, [matches]);
 
-  // ── Auth ──
-  const login = useCallback(() => setIsLoggedIn(true), []);
-  const completeProfile = useCallback((data: Partial<ProfileData>) => {
-    setMyProfile({
-      id: "me",
-      name: data.name || "You",
-      batch: data.batch || "PGP25",
-      section: data.section || "3",
-      photos: [],
-      maggiMetric: data.maggiMetric || 50,
-      favoriteTrip: data.favoriteTrip || "",
-      partySpot: data.partySpot || "",
-      redFlag: data.redFlag,
-      compatibility: 100,
+  const isLoggedIn = !!session?.user;
+  const hasProfile = !!myProfile;
+
+  const canNudgeToday = !nudgesSent.some(n => n.sentAt.toDateString() === new Date().toDateString());
+
+  const allProfiles = allProfileRows
+    .filter(p => p.id !== session?.user?.id && !p.is_shadow_banned)
+    .map(p => dbProfileToApp(p));
+
+  // ── Auth listener ──
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, sess) => {
+      setSession(sess);
     });
-    setHasProfile(true);
+    supabase.auth.getSession().then(({ data: { session: sess } }) => {
+      setSession(sess);
+      setLoading(false);
+    });
+    return () => subscription.unsubscribe();
   }, []);
 
-  // ── Discovery ──
-  const discoverQueue = ALL_PROFILES.filter(
-    (p) => !swipedIds.has(p.id) && !matchedIds.has(p.id)
-  );
+  // ── Fetch data when session changes ──
+  useEffect(() => {
+    if (session?.user) {
+      fetchAllData(session.user.id);
+    } else {
+      resetData();
+    }
+  }, [session?.user?.id]);
 
-  const swipeLeft = useCallback((profileId: string) => {
-    setSwipedIds((prev) => new Set(prev).add(profileId));
-  }, []);
+  const resetData = () => {
+    setMyProfileRow(null);
+    setMyProfile(null);
+    setAllProfileRows([]);
+    setDiscoverQueue([]);
+    setMatches([]);
+    setConversations({});
+    setNudgesSent([]);
+    setNudgesReceived([]);
+    setCrushesSent([]);
+    setCrushesReceived([]);
+  };
 
-  const swipeRight = useCallback((profileId: string) => {
-    setSwipedIds((prev) => new Set(prev).add(profileId));
-    const profile = ALL_PROFILES.find((p) => p.id === profileId);
-    if (!profile) return;
+  const fetchAllData = async (userId: string) => {
+    const [profileRes, allProfilesRes, swipesRes, matchesRes, nudgeSentRes, nudgeRecvRes, crushSentRes, crushRecvRes] = await Promise.all([
+      supabase.from("profiles").select("*").eq("id", userId).maybeSingle(),
+      supabase.from("profiles").select("*").eq("is_shadow_banned", false),
+      supabase.from("swipes").select("swiped_id").eq("swiper_id", userId),
+      supabase.from("matches").select("*").or(`user1_id.eq.${userId},user2_id.eq.${userId}`),
+      supabase.from("nudges").select("*").eq("sender_id", userId),
+      supabase.from("nudges").select("*").eq("receiver_id", userId),
+      supabase.from("crushes").select("*").eq("sender_id", userId),
+      supabase.from("crushes").select("*").eq("receiver_id", userId),
+    ]);
 
-    // 40% match chance for demo
-    if (Math.random() < 0.4) {
-      setMatchedIds((prev) => new Set(prev).add(profileId));
-      setMatches((prev) => [
-        {
-          id: profileId,
-          profile,
-          matchedAt: new Date(),
-          lastMessage: "",
-          lastMessageTime: "",
-          unread: 0,
-        },
-        ...prev,
-      ]);
+    const profileRow = profileRes.data;
+    setMyProfileRow(profileRow);
+    setMyProfile(profileRow ? dbProfileToApp(profileRow, 100) : null);
+
+    const allRows = allProfilesRes.data || [];
+    setAllProfileRows(allRows);
+
+    // Discovery queue
+    const swipedIds = new Set((swipesRes.data || []).map(s => s.swiped_id));
+    const queue = allRows
+      .filter(p => p.id !== userId && !swipedIds.has(p.id))
+      .map(p => dbProfileToApp(p, profileRow ? computeCompat(profileRow, p) : 50));
+    setDiscoverQueue(queue);
+
+    // Matches
+    const matchRows = matchesRes.data || [];
+    if (matchRows.length > 0) {
+      const otherIds = matchRows.map(m => m.user1_id === userId ? m.user2_id : m.user1_id);
+      const { data: matchProfiles } = await supabase.from("profiles").select("*").in("id", otherIds);
+      const { data: allMsgs } = await supabase.from("messages").select("*").in("match_id", matchRows.map(m => m.id)).order("created_at", { ascending: false });
+
+      const md: MatchData[] = matchRows.map(m => {
+        const otherId = m.user1_id === userId ? m.user2_id : m.user1_id;
+        const prof = (matchProfiles || []).find(p => p.id === otherId);
+        const msgs = (allMsgs || []).filter(msg => msg.match_id === m.id);
+        const latest = msgs[0];
+        const unread = msgs.filter(msg => msg.sender_id !== userId && msg.status === "sent").length;
+        return {
+          id: otherId,
+          matchUuid: m.id,
+          profile: prof ? dbProfileToApp(prof, profileRow ? computeCompat(profileRow, prof) : 50) : dbProfileToApp(profileRow!, 0),
+          matchedAt: new Date(m.matched_at),
+          lastMessage: latest?.text || "",
+          lastMessageTime: latest ? timeAgo(latest.created_at) : "",
+          unread,
+        };
+      });
+      setMatches(md);
+    } else {
+      setMatches([]);
+    }
+
+    // Nudges
+    setNudgesSent((nudgeSentRes.data || []).map(n => ({ id: n.id, fromId: n.sender_id, toId: n.receiver_id, message: n.message, sentAt: new Date(n.created_at), seen: n.seen ?? false })));
+    setNudgesReceived((nudgeRecvRes.data || []).map(n => ({ id: n.id, fromId: n.sender_id, toId: n.receiver_id, message: n.message, sentAt: new Date(n.created_at), seen: n.seen ?? false })));
+
+    // Crushes
+    setCrushesSent((crushSentRes.data || []).map(c => ({ id: c.id, fromId: c.sender_id, toId: c.receiver_id, hint: c.hint, sentAt: new Date(c.created_at), guessesLeft: c.guesses_left, revealed: c.revealed ?? false })));
+    setCrushesReceived((crushRecvRes.data || []).map(c => ({ id: c.id, fromId: c.sender_id, toId: c.receiver_id, hint: c.hint, sentAt: new Date(c.created_at), guessesLeft: c.guesses_left, revealed: c.revealed ?? false })));
+  };
+
+  // ── Auth actions ──
+  const signUp = async (email: string, password: string) => {
+    const { error } = await supabase.auth.signUp({ email, password });
+    return { error: error?.message ?? null };
+  };
+
+  const signIn = async (email: string, password: string) => {
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    return { error: error?.message ?? null };
+  };
+
+  const signOut = async () => {
+    await supabase.auth.signOut();
+  };
+
+  const completeProfile = async (data: Record<string, any>) => {
+    if (!session?.user) return;
+    await supabase.from("profiles").insert({
+      id: session.user.id,
+      email: session.user.email!,
+      name: data.name,
+      program: data.program,
+      section: data.section || null,
+      sex: data.sex,
+      age: data.age,
+      maggi_metric: data.maggiMetric ?? 50,
+      favorite_trip: data.favoriteTrip || "",
+      party_spot: data.partySpot || "",
+      red_flag: data.redFlag || null,
+    });
+    await fetchAllData(session.user.id);
+  };
+
+  // ── Swipe ──
+  const swipeLeft = async (profileId: string) => {
+    if (!session?.user) return;
+    await supabase.from("swipes").insert({ swiper_id: session.user.id, swiped_id: profileId, direction: "dislike" });
+    setDiscoverQueue(q => q.filter(p => p.id !== profileId));
+  };
+
+  const swipeRight = async (profileId: string): Promise<boolean> => {
+    if (!session?.user) return false;
+    await supabase.from("swipes").insert({ swiper_id: session.user.id, swiped_id: profileId, direction: "like" });
+    setDiscoverQueue(q => q.filter(p => p.id !== profileId));
+
+    // Check if mutual match was created by trigger
+    const { data: match } = await supabase
+      .from("matches")
+      .select("*")
+      .or(`and(user1_id.eq.${session.user.id},user2_id.eq.${profileId}),and(user1_id.eq.${profileId},user2_id.eq.${session.user.id})`)
+      .maybeSingle();
+
+    if (match) {
+      await fetchAllData(session.user.id);
       return true;
     }
     return false;
-  }, []);
+  };
 
   // ── Chat ──
-  const sendMessage = useCallback((matchId: string, text: string) => {
-    const msg: ChatMessage = {
-      id: `msg-${Date.now()}`,
-      senderId: "me",
-      text,
-      timestamp: new Date(),
-      status: "sent",
-    };
-    setConversations((prev) => ({
+  const loadConversation = async (profileId: string) => {
+    const match = matchesRef.current.find(m => m.id === profileId);
+    if (!match) return;
+    const { data } = await supabase
+      .from("messages")
+      .select("*")
+      .eq("match_id", match.matchUuid)
+      .order("created_at", { ascending: true });
+
+    setConversations(prev => ({
       ...prev,
-      [matchId]: [...(prev[matchId] || []), msg],
+      [profileId]: (data || []).map(m => ({
+        id: m.id,
+        senderId: m.sender_id,
+        text: m.text,
+        timestamp: new Date(m.created_at),
+        status: m.status as "sent" | "read",
+      })),
     }));
-    setMatches((prev) =>
-      prev.map((m) =>
-        m.id === matchId
-          ? { ...m, lastMessage: text, lastMessageTime: "Just now", unread: 0 }
-          : m
-      )
-    );
-  }, []);
+  };
+
+  const sendMessage = async (profileId: string, text: string) => {
+    const match = matchesRef.current.find(m => m.id === profileId);
+    if (!match || !session?.user) return;
+    await supabase.from("messages").insert({
+      match_id: match.matchUuid,
+      sender_id: session.user.id,
+      text,
+    });
+    await loadConversation(profileId);
+    // Update match's last message
+    setMatches(prev => prev.map(m =>
+      m.id === profileId ? { ...m, lastMessage: text, lastMessageTime: "Just now" } : m
+    ));
+  };
 
   // ── Nudges ──
-  const sendNudge = useCallback((toId: string, message: string) => {
-    const nudge: NudgeData = {
-      id: `nudge-${Date.now()}`,
-      fromId: "me",
-      toId,
-      message,
-      sentAt: new Date(),
-      seen: false,
-    };
-    setNudgesSent((prev) => [...prev, nudge]);
-  }, []);
+  const sendNudge = async (toId: string, message: string) => {
+    if (!session?.user) return;
+    await supabase.from("nudges").insert({ sender_id: session.user.id, receiver_id: toId, message });
+    setNudgesSent(prev => [...prev, { id: `temp-${Date.now()}`, fromId: session.user!.id, toId, message, sentAt: new Date(), seen: false }]);
+  };
 
-  const markNudgeSeen = useCallback((nudgeId: string) => {
-    setNudgesReceived((prev) =>
-      prev.map((n) => (n.id === nudgeId ? { ...n, seen: true } : n))
-    );
-  }, []);
+  const markNudgeSeen = async (nudgeId: string) => {
+    await supabase.from("nudges").update({ seen: true }).eq("id", nudgeId);
+    setNudgesReceived(prev => prev.map(n => n.id === nudgeId ? { ...n, seen: true } : n));
+  };
 
   // ── Crushes ──
-  const sendCrush = useCallback((toId: string, hint: string): boolean => {
-    if (crushesSent.length >= 3) return false;
-    const crush: CrushData = {
-      id: `crush-${Date.now()}`,
-      fromId: "me",
-      toId,
-      hint,
-      sentAt: new Date(),
-      guessesLeft: 3,
-      revealed: false,
-    };
-    setCrushesSent((prev) => [...prev, crush]);
+  const sendCrush = async (toId: string, hint: string): Promise<boolean> => {
+    if (!session?.user || crushesSent.length >= 3) return false;
+    const { error } = await supabase.from("crushes").insert({ sender_id: session.user.id, receiver_id: toId, hint });
+    if (error) return false;
+    setCrushesSent(prev => [...prev, { id: `temp-${Date.now()}`, fromId: session.user!.id, toId, hint, sentAt: new Date(), guessesLeft: 3, revealed: false }]);
     return true;
-  }, [crushesSent.length]);
+  };
 
-  const guessCrush = useCallback((crushId: string, guessId: string): boolean => {
-    let correct = false;
-    setCrushesReceived((prev) =>
-      prev.map((c) => {
-        if (c.id !== crushId) return c;
-        if (c.guessesLeft <= 0) return c;
-        if (guessId === c.fromId) {
-          correct = true;
-          return { ...c, revealed: true, guessesLeft: 0 };
-        }
-        return { ...c, guessesLeft: c.guessesLeft - 1 };
-      })
-    );
+  const guessCrush = async (crushId: string, guessId: string): Promise<boolean> => {
+    const crush = crushesReceived.find(c => c.id === crushId);
+    if (!crush || crush.guessesLeft <= 0) return false;
+    const correct = guessId === crush.fromId;
+    if (correct) {
+      await supabase.from("crushes").update({ revealed: true, guesses_left: 0 }).eq("id", crushId);
+    } else {
+      await supabase.from("crushes").update({ guesses_left: crush.guessesLeft - 1 }).eq("id", crushId);
+    }
+    setCrushesReceived(prev => prev.map(c => {
+      if (c.id !== crushId) return c;
+      return correct ? { ...c, revealed: true, guessesLeft: 0 } : { ...c, guessesLeft: c.guessesLeft - 1 };
+    }));
     return correct;
-  }, []);
+  };
 
-  // ── Report ──
-  const reportUser = useCallback((userId: string, reason: string) => {
-    setReports((prev) => [...prev, { id: `rep-${Date.now()}`, reportedId: userId, reason, timestamp: new Date() }]);
-  }, []);
+  // ── Reports ──
+  const reportUser = async (userId: string, reason: string) => {
+    if (!session?.user) return;
+    await supabase.from("reports").insert({ reporter_id: session.user.id, reported_id: userId, reason });
+  };
 
-  // ── Wrapped Stats ──
+  // ── Stats ──
   const getWrappedStats = useCallback(() => ({
     matchCount: matches.length,
     crushesSent: crushesSent.length,
@@ -385,13 +450,13 @@ export const WaltzStoreProvider = ({ children }: { children: ReactNode }) => {
   return (
     <WaltzStoreContext.Provider
       value={{
-        isLoggedIn, hasProfile, myProfile, login, completeProfile,
+        session, isLoggedIn, hasProfile, myProfile, loading,
+        signUp, signIn, signOut, completeProfile,
         discoverQueue, swipeLeft, swipeRight,
-        matches, conversations, sendMessage,
+        matches, conversations, sendMessage, loadConversation,
         nudgesSent, nudgesReceived, canNudgeToday, sendNudge, markNudgeSeen,
         crushesSent, crushesReceived, sendCrush, guessCrush,
-        reportUser,
-        getWrappedStats,
+        reportUser, allProfiles, getWrappedStats,
       }}
     >
       {children}

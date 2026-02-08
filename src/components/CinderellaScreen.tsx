@@ -72,7 +72,7 @@ const CinderellaScreen = () => {
           transition={{ delay: 3.5, duration: 1 }}
           className="mt-12 text-[11px] text-muted-foreground/30 font-body"
         >
-          WALTZ · IIM Shillong · 2025
+          WALTZ · IIM Shillong · 2026
         </motion.p>
       </motion.div>
     </div>

@@ -6,6 +6,8 @@ interface ProfileFormData {
   name: string;
   program: string;
   section: string;
+  sex: string;
+  age: number;
   maggiMetric: number;
   favoriteTrip: string;
   partySpot: string;
@@ -16,7 +18,7 @@ interface ProfileSetupProps {
   onComplete: (data: ProfileFormData) => void;
 }
 
-const PROGRAMS = ["PGP24", "PGP25", "PGPEx", "IPM"];
+const PROGRAMS = ["PGP24", "PGP25", "PGPEx", "IPM", "PhD"];
 const SECTIONS = ["1", "2", "3", "4", "5", "6"];
 
 const ProfileSetup = ({ onComplete }: ProfileSetupProps) => {
@@ -25,6 +27,8 @@ const ProfileSetup = ({ onComplete }: ProfileSetupProps) => {
     name: "",
     program: "",
     section: "",
+    sex: "",
+    age: 0,
     maggiMetric: 50,
     favoriteTrip: "",
     partySpot: "",
@@ -32,7 +36,7 @@ const ProfileSetup = ({ onComplete }: ProfileSetupProps) => {
   });
 
   const steps = [
-    // Step 0: Basics
+    // Step 0: Basics — Name, Program, Sex, Age
     <motion.div
       key="basics"
       initial={{ opacity: 0, x: 40 }}
@@ -41,12 +45,8 @@ const ProfileSetup = ({ onComplete }: ProfileSetupProps) => {
       className="space-y-6"
     >
       <div>
-        <h2 className="font-display text-2xl font-bold text-foreground mb-1">
-          The Anti-CV
-        </h2>
-        <p className="text-muted-foreground text-sm font-body">
-          No convocation photos allowed.
-        </p>
+        <h2 className="font-display text-2xl font-bold text-foreground mb-1">The Anti-CV</h2>
+        <p className="text-muted-foreground text-sm font-body">No convocation photos allowed.</p>
       </div>
 
       {/* Photo upload placeholder */}
@@ -62,9 +62,7 @@ const ProfileSetup = ({ onComplete }: ProfileSetupProps) => {
       </div>
 
       <div>
-        <label className="text-sm text-muted-foreground font-body block mb-2">
-          What do they call you?
-        </label>
+        <label className="text-sm text-muted-foreground font-body block mb-2">What do they call you?</label>
         <input
           type="text"
           value={form.name}
@@ -76,24 +74,51 @@ const ProfileSetup = ({ onComplete }: ProfileSetupProps) => {
       </div>
 
       <div>
-        <label className="text-sm text-muted-foreground font-body block mb-2">
-          Program
-        </label>
+        <label className="text-sm text-muted-foreground font-body block mb-2">Program</label>
         <div className="flex flex-wrap gap-2">
           {PROGRAMS.map((p) => (
-            <button
-              key={p}
-              onClick={() => setForm({ ...form, program: p })}
-              className={`pill ${form.program === p ? "pill-active" : ""}`}
-            >
+            <button key={p} onClick={() => setForm({ ...form, program: p })} className={`pill ${form.program === p ? "pill-active" : ""}`}>
               {p}
             </button>
           ))}
         </div>
       </div>
+
+      {/* Sex */}
+      <div>
+        <label className="text-sm text-muted-foreground font-body block mb-2">I am</label>
+        <div className="flex gap-3">
+          {(["male", "female"] as const).map((s) => (
+            <button
+              key={s}
+              onClick={() => setForm({ ...form, sex: s })}
+              className={`pill flex-1 text-center capitalize ${form.sex === s ? "pill-active" : ""}`}
+            >
+              {s === "male" ? "👨 Male" : "👩 Female"}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Age */}
+      <div>
+        <label className="text-sm text-muted-foreground font-body block mb-2">Age</label>
+        <input
+          type="number"
+          min={18}
+          max={99}
+          value={form.age || ""}
+          onChange={(e) => setForm({ ...form, age: Number(e.target.value) })}
+          placeholder="Must be 18+"
+          className="w-full bg-input rounded-xl px-4 py-3 text-foreground font-body placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-blossom/30"
+        />
+        {form.age > 0 && form.age < 18 && (
+          <p className="text-maroon text-xs font-body mt-1">You must be at least 18.</p>
+        )}
+      </div>
     </motion.div>,
 
-    // Step 1: Vibe Check
+    // Step 1: Vibe Check — Section (optional), Maggi Metric
     <motion.div
       key="vibe"
       initial={{ opacity: 0, x: 40 }}
@@ -102,19 +127,13 @@ const ProfileSetup = ({ onComplete }: ProfileSetupProps) => {
       className="space-y-6"
     >
       <div>
-        <h2 className="font-display text-2xl font-bold text-foreground mb-1">
-          The Vibe Check
-        </h2>
-        <p className="text-muted-foreground text-sm font-body">
-          Let's see what you're really about.
-        </p>
+        <h2 className="font-display text-2xl font-bold text-foreground mb-1">The Vibe Check</h2>
+        <p className="text-muted-foreground text-sm font-body">Let's see what you're really about.</p>
       </div>
 
       {/* Maggi Metric */}
       <div className="glass rounded-2xl p-4">
-        <label className="text-sm text-muted-foreground font-body block mb-3">
-          🍜 Late-Night Maggi Metric
-        </label>
+        <label className="text-sm text-muted-foreground font-body block mb-3">🍜 Late-Night Maggi Metric</label>
         <input
           type="range"
           min="0"
@@ -129,10 +148,10 @@ const ProfileSetup = ({ onComplete }: ProfileSetupProps) => {
         </div>
       </div>
 
-      {/* Section Pride */}
+      {/* Section (Optional) */}
       <div>
         <label className="text-sm text-muted-foreground font-body block mb-2">
-          Section Pride
+          Section Pride <span className="text-muted-foreground/50">(optional)</span>
         </label>
         <p className="text-xs text-muted-foreground/70 mb-2 italic font-body">
           "Choose wisely. Cross-batch dating is high risk, high reward."
@@ -141,13 +160,21 @@ const ProfileSetup = ({ onComplete }: ProfileSetupProps) => {
           {SECTIONS.map((s) => (
             <button
               key={s}
-              onClick={() => setForm({ ...form, section: s })}
+              onClick={() => setForm({ ...form, section: form.section === s ? "" : s })}
               className={`pill ${form.section === s ? "pill-active" : ""}`}
             >
               Section {s}
             </button>
           ))}
         </div>
+        {form.section && (
+          <button
+            onClick={() => setForm({ ...form, section: "" })}
+            className="text-xs text-blossom/60 font-body mt-2 hover:underline"
+          >
+            Clear selection
+          </button>
+        )}
       </div>
     </motion.div>,
 
@@ -160,18 +187,12 @@ const ProfileSetup = ({ onComplete }: ProfileSetupProps) => {
       className="space-y-6"
     >
       <div>
-        <h2 className="font-display text-2xl font-bold text-foreground mb-1">
-          Shillong Essentials
-        </h2>
-        <p className="text-muted-foreground text-sm font-body">
-          What makes you, you — in the Clouds.
-        </p>
+        <h2 className="font-display text-2xl font-bold text-foreground mb-1">Shillong Essentials</h2>
+        <p className="text-muted-foreground text-sm font-body">What makes you, you — in the Clouds.</p>
       </div>
 
       <div>
-        <label className="text-sm text-muted-foreground font-body block mb-2">
-          My favorite trip so far
-        </label>
+        <label className="text-sm text-muted-foreground font-body block mb-2">My favorite trip so far</label>
         <input
           type="text"
           value={form.favoriteTrip}
@@ -183,9 +204,7 @@ const ProfileSetup = ({ onComplete }: ProfileSetupProps) => {
       </div>
 
       <div>
-        <label className="text-sm text-muted-foreground font-body block mb-2">
-          Go-to party spot
-        </label>
+        <label className="text-sm text-muted-foreground font-body block mb-2">Go-to party spot</label>
         <input
           type="text"
           value={form.partySpot}
@@ -202,9 +221,7 @@ const ProfileSetup = ({ onComplete }: ProfileSetupProps) => {
           <AlertTriangle className="w-4 h-4" />
           The Red Flag (Optional)
         </label>
-        <p className="text-xs text-muted-foreground/70 mb-2 font-body">
-          "I honestly believe that..."
-        </p>
+        <p className="text-xs text-muted-foreground/70 mb-2 font-body">"I honestly believe that…"</p>
         <input
           type="text"
           value={form.redFlag}
@@ -218,9 +235,8 @@ const ProfileSetup = ({ onComplete }: ProfileSetupProps) => {
   ];
 
   const canProceed = () => {
-    if (step === 0) return form.name.trim() && form.program;
-    if (step === 1) return form.section;
-    return true;
+    if (step === 0) return form.name.trim() && form.program && form.sex && form.age >= 18;
+    return true; // Step 1 and 2 have no required fields
   };
 
   const handleNext = () => {

@@ -8,8 +8,8 @@ const ProfilePage = () => {
 
   return (
     <ProfileSetup
-      onComplete={(data) => {
-        completeProfile(data);
+      onComplete={async (data) => {
+        await completeProfile(data);
         navigate("/discover");
       }}
     />

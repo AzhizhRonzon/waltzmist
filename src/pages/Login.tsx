@@ -1,39 +1,43 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Mail, Lock } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import FallingPetals from "../components/FallingPetals";
 import { useWaltzStore } from "../context/WaltzStore";
 
 const LoginPage = () => {
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [isSignUp, setIsSignUp] = useState(true);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const { login } = useWaltzStore();
+  const { signUp, signIn } = useWaltzStore();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
 
-    const trimmed = email.trim().toLowerCase();
-
-    if (!trimmed) {
-      setError("Enter your college email.");
-      return;
-    }
-
-    if (!trimmed.endsWith("@iimshillong.ac.in")) {
+    const trimmedEmail = email.trim().toLowerCase();
+    if (!trimmedEmail) { setError("Enter your college email."); return; }
+    if (!trimmedEmail.endsWith("@iimshillong.ac.in")) {
       setError("Sorry, this party is strictly for the Clouds. Go study. 📚");
       return;
     }
+    if (password.length < 6) { setError("Password must be at least 6 characters."); return; }
 
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
-      login();
-      navigate("/profile");
-    }, 1500);
+    const result = isSignUp
+      ? await signUp(trimmedEmail, password)
+      : await signIn(trimmedEmail, password);
+
+    setLoading(false);
+    if (result.error) {
+      setError(result.error);
+      return;
+    }
+    navigate("/profile");
   };
 
   return (
@@ -46,7 +50,6 @@ const LoginPage = () => {
         transition={{ duration: 0.8 }}
         className="w-full max-w-sm z-10"
       >
-        {/* Logo */}
         <div className="text-center mb-10">
           <motion.h1
             className="font-display text-5xl font-bold blossom-text mb-2"
@@ -56,13 +59,13 @@ const LoginPage = () => {
             WALTZ
           </motion.h1>
           <p className="text-muted-foreground font-body text-sm">
-            The Gatekeeper awaits 🌸
+            {isSignUp ? "Join the Dance Floor 🌸" : "Welcome back 🌸"}
           </p>
         </div>
 
-        {/* Login Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="glass-strong rounded-2xl p-6 space-y-4 blossom-glow">
+            {/* Email */}
             <div>
               <label className="text-xs text-muted-foreground font-body block mb-2 uppercase tracking-wider">
                 College Email
@@ -78,6 +81,32 @@ const LoginPage = () => {
                   maxLength={100}
                   autoComplete="email"
                 />
+              </div>
+            </div>
+
+            {/* Password */}
+            <div>
+              <label className="text-xs text-muted-foreground font-body block mb-2 uppercase tracking-wider">
+                Password
+              </label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <input
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => { setPassword(e.target.value); setError(""); }}
+                  placeholder="Min 6 characters"
+                  className="w-full bg-input rounded-xl pl-10 pr-12 py-3 text-foreground font-body placeholder:text-muted-foreground/40 focus:outline-none focus:ring-2 focus:ring-blossom/30"
+                  maxLength={100}
+                  autoComplete={isSignUp ? "new-password" : "current-password"}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
               </div>
             </div>
 
@@ -106,12 +135,23 @@ const LoginPage = () => {
                     transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
                     className="inline-block w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full"
                   />
-                  Sending magic...
+                  {isSignUp ? "Creating account..." : "Signing in..."}
                 </span>
               ) : (
-                "Enter the Dance Floor"
+                isSignUp ? "Enter the Dance Floor" : "Welcome Back"
               )}
             </motion.button>
+          </div>
+
+          {/* Toggle Sign Up / Sign In */}
+          <div className="text-center">
+            <button
+              type="button"
+              onClick={() => { setIsSignUp(!isSignUp); setError(""); }}
+              className="text-sm text-blossom font-body hover:underline"
+            >
+              {isSignUp ? "Already have an account? Sign In" : "New here? Sign Up"}
+            </button>
           </div>
 
           <p className="text-center text-xs text-muted-foreground/60 font-body">
