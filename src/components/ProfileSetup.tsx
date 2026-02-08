@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronRight, Camera, AlertTriangle } from "lucide-react";
+import { ChevronRight, AlertTriangle } from "lucide-react";
+import PhotoUpload from "./PhotoUpload";
+import { useWaltzStore } from "../context/WaltzStore";
 
 interface ProfileFormData {
   name: string;
@@ -12,6 +14,7 @@ interface ProfileFormData {
   favoriteTrip: string;
   partySpot: string;
   redFlag: string;
+  photoUrls: string[];
 }
 
 interface ProfileSetupProps {
@@ -22,6 +25,7 @@ const PROGRAMS = ["PGP24", "PGP25", "PGPEx", "IPM", "PhD"];
 const SECTIONS = ["1", "2", "3", "4", "5", "6"];
 
 const ProfileSetup = ({ onComplete }: ProfileSetupProps) => {
+  const { session } = useWaltzStore();
   const [step, setStep] = useState(0);
   const [form, setForm] = useState<ProfileFormData>({
     name: "",
@@ -33,33 +37,25 @@ const ProfileSetup = ({ onComplete }: ProfileSetupProps) => {
     favoriteTrip: "",
     partySpot: "",
     redFlag: "",
+    photoUrls: [],
   });
 
   const steps = [
-    // Step 0: Basics — Name, Program, Sex, Age
-    <motion.div
-      key="basics"
-      initial={{ opacity: 0, x: 40 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: -40 }}
-      className="space-y-6"
-    >
+    // Step 0: Basics
+    <motion.div key="basics" initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -40 }} className="space-y-6">
       <div>
         <h2 className="font-display text-2xl font-bold text-foreground mb-1">The Anti-CV</h2>
         <p className="text-muted-foreground text-sm font-body">No convocation photos allowed.</p>
       </div>
 
-      {/* Photo upload placeholder */}
-      <div className="flex gap-3">
-        {[0, 1, 2, 3].map((i) => (
-          <div
-            key={i}
-            className="w-20 h-20 rounded-2xl glass flex items-center justify-center cursor-pointer hover:border-blossom/30 transition-colors border border-transparent"
-          >
-            <Camera className="w-5 h-5 text-muted-foreground" />
-          </div>
-        ))}
-      </div>
+      {/* Photo upload */}
+      {session?.user && (
+        <PhotoUpload
+          userId={session.user.id}
+          photos={form.photoUrls}
+          onChange={(urls) => setForm({ ...form, photoUrls: urls })}
+        />
+      )}
 
       <div>
         <label className="text-sm text-muted-foreground font-body block mb-2">What do they call you?</label>
@@ -84,7 +80,6 @@ const ProfileSetup = ({ onComplete }: ProfileSetupProps) => {
         </div>
       </div>
 
-      {/* Sex */}
       <div>
         <label className="text-sm text-muted-foreground font-body block mb-2">I am</label>
         <div className="flex gap-3">
@@ -100,7 +95,6 @@ const ProfileSetup = ({ onComplete }: ProfileSetupProps) => {
         </div>
       </div>
 
-      {/* Age */}
       <div>
         <label className="text-sm text-muted-foreground font-body block mb-2">Age</label>
         <input
@@ -118,20 +112,13 @@ const ProfileSetup = ({ onComplete }: ProfileSetupProps) => {
       </div>
     </motion.div>,
 
-    // Step 1: Vibe Check — Section (optional), Maggi Metric
-    <motion.div
-      key="vibe"
-      initial={{ opacity: 0, x: 40 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: -40 }}
-      className="space-y-6"
-    >
+    // Step 1: Vibe Check
+    <motion.div key="vibe" initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -40 }} className="space-y-6">
       <div>
         <h2 className="font-display text-2xl font-bold text-foreground mb-1">The Vibe Check</h2>
         <p className="text-muted-foreground text-sm font-body">Let's see what you're really about.</p>
       </div>
 
-      {/* Maggi Metric */}
       <div className="glass rounded-2xl p-4">
         <label className="text-sm text-muted-foreground font-body block mb-3">🍜 Late-Night Maggi Metric</label>
         <input
@@ -148,7 +135,6 @@ const ProfileSetup = ({ onComplete }: ProfileSetupProps) => {
         </div>
       </div>
 
-      {/* Section (Optional) */}
       <div>
         <label className="text-sm text-muted-foreground font-body block mb-2">
           Section Pride <span className="text-muted-foreground/50">(optional)</span>
@@ -179,13 +165,7 @@ const ProfileSetup = ({ onComplete }: ProfileSetupProps) => {
     </motion.div>,
 
     // Step 2: Shillong Essentials
-    <motion.div
-      key="essentials"
-      initial={{ opacity: 0, x: 40 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: -40 }}
-      className="space-y-6"
-    >
+    <motion.div key="essentials" initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -40 }} className="space-y-6">
       <div>
         <h2 className="font-display text-2xl font-bold text-foreground mb-1">Shillong Essentials</h2>
         <p className="text-muted-foreground text-sm font-body">What makes you, you — in the Clouds.</p>
@@ -215,7 +195,6 @@ const ProfileSetup = ({ onComplete }: ProfileSetupProps) => {
         />
       </div>
 
-      {/* Red Flag */}
       <div className="glass rounded-2xl p-4 border border-maroon/20">
         <label className="text-sm text-maroon font-body flex items-center gap-2 mb-2">
           <AlertTriangle className="w-4 h-4" />
@@ -236,7 +215,7 @@ const ProfileSetup = ({ onComplete }: ProfileSetupProps) => {
 
   const canProceed = () => {
     if (step === 0) return form.name.trim() && form.program && form.sex && form.age >= 18;
-    return true; // Step 1 and 2 have no required fields
+    return true;
   };
 
   const handleNext = () => {

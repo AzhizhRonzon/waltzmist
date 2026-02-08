@@ -9,7 +9,10 @@ const ProfilePage = () => {
   return (
     <ProfileSetup
       onComplete={async (data) => {
-        await completeProfile(data);
+        await completeProfile({
+          ...data,
+          photoUrls: data.photoUrls,
+        });
         navigate("/discover");
       }}
     />
