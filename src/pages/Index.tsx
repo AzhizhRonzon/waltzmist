@@ -45,7 +45,7 @@ const LandingPage = () => {
 
           <p className="text-muted-foreground font-body text-lg mb-2">Who are you going with?</p>
           <p className="text-muted-foreground/60 font-body text-sm mb-8">
-          <span className="text-blossom italic">"The Clouds"</span>
+          <span className="text-blossom italic"></span>
           </p>
         </motion.div>
 
@@ -87,7 +87,8 @@ const LandingPage = () => {
             Enter the Dance Floor 🌸
           </motion.button>
 
-          <p className="text-xs text-muted-foreground/40 font-body">.<br />
+          <p className="text-xs text-muted-foreground/40 font-body">
+          <br />
             Just vibes.
           </p>
         </motion.div>
