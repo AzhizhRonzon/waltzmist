@@ -44,7 +44,8 @@ const LandingPage = () => {
           </motion.div>
 
           <p className="text-muted-foreground font-body text-lg mb-2">Who are you going with?</p>
-          <p className="text-muted-foreground/60 font-body text-sm mb-8">for IIM Shillong<span className="text-blossom italic">"The Clouds"</span>
+          <p className="text-muted-foreground/60 font-body text-sm mb-8">
+          <span className="text-blossom italic">"The Clouds"</span>
           </p>
         </motion.div>
 
@@ -86,8 +87,7 @@ const LandingPage = () => {
             Enter the Dance Floor 🌸
           </motion.button>
 
-          <p className="text-xs text-muted-foreground/40 font-body">
-            Not a networking app. Not LinkedIn. <br />
+          <p className="text-xs text-muted-foreground/40 font-body">.<br />
             Just vibes.
           </p>
         </motion.div>
@@ -101,9 +101,7 @@ const LandingPage = () => {
         delay: 1.2,
         duration: 1
       }} className="mt-16">
-          <p className="text-[11px] text-muted-foreground/30 font-body italic">
-            "If it feels like a placement interview, delete it."
-          </p>
+          <p className="text-[11px] text-muted-foreground/30 font-body italic">Made for IIM Shillong, by Ashish, with boredom at heart</p>
         </motion.div>
       </motion.div>
     </div>;
