@@ -329,6 +329,7 @@ export const WaltzStoreProvider = ({ children }: { children: ReactNode }) => {
       favorite_trip: data.favoriteTrip || "",
       party_spot: data.partySpot || "",
       red_flag: data.redFlag || null,
+      photo_urls: data.photoUrls && data.photoUrls.length > 0 ? data.photoUrls : null,
     });
     await fetchAllData(session.user.id);
   };

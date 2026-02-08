@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, Send, ShieldAlert } from "lucide-react";
@@ -6,12 +6,13 @@ import ChatBubble from "../components/ChatBubble";
 import CountdownTimer from "../components/CountdownTimer";
 import FallingPetals from "../components/FallingPetals";
 import ReportModal from "../components/ReportModal";
-import { useWaltzStore } from "../context/WaltzStore";
+import { useWaltzStore, ChatMessage } from "../context/WaltzStore";
+import { useRealtimeChat } from "../hooks/useRealtimeChat";
 
 const ChatPage = () => {
   const { matchId } = useParams<{ matchId: string }>();
   const navigate = useNavigate();
-  const { matches, conversations, sendMessage, loadConversation, reportUser } = useWaltzStore();
+  const { session, matches, conversations, sendMessage, loadConversation, reportUser } = useWaltzStore();
   const [newMessage, setNewMessage] = useState("");
   const [showReport, setShowReport] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -24,6 +25,18 @@ const ChatPage = () => {
   useEffect(() => {
     if (matchId) loadConversation(matchId);
   }, [matchId]);
+
+  // Realtime: subscribe to new messages
+  const handleRealtimeMessage = useCallback((msg: ChatMessage) => {
+    // The store's conversations state needs updating — we reload
+    if (matchId) loadConversation(matchId);
+  }, [matchId, loadConversation]);
+
+  useRealtimeChat({
+    matchUuid: match?.matchUuid,
+    currentUserId: session?.user?.id,
+    onNewMessage: handleRealtimeMessage,
+  });
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
