@@ -1,10 +1,8 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Mail, Lock, Eye, EyeOff, ArrowLeft } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff, ArrowLeft, CheckCircle } from "lucide-react";
 import FallingPetals from "../components/FallingPetals";
 import { useWaltzStore } from "../context/WaltzStore";
-import { supabase } from "@/integrations/supabase/client";
-import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 
 const LoginPage = () => {
   const [email, setEmail] = useState("");
@@ -13,8 +11,7 @@ const LoginPage = () => {
   const [isSignUp, setIsSignUp] = useState(true);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [view, setView] = useState<"form" | "verify">("form");
-  const [otp, setOtp] = useState("");
+  const [signUpSuccess, setSignUpSuccess] = useState(false);
   const { signUp, signIn } = useWaltzStore();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -33,40 +30,13 @@ const LoginPage = () => {
       const result = await signUp(trimmedEmail, password);
       setLoading(false);
       if (result.error) { setError(result.error); return; }
-      setView("verify");
+      setSignUpSuccess(true);
     } else {
       const result = await signIn(trimmedEmail, password);
       setLoading(false);
       if (result.error) { setError(result.error); return; }
       // Auth state change in WaltzStore + App.tsx routing handles redirect
     }
-  };
-
-  const handleVerifyOtp = async () => {
-    setError("");
-    if (otp.length < 6) { setError("Enter the full 6-digit code."); return; }
-    setLoading(true);
-    const { error: verifyError } = await supabase.auth.verifyOtp({
-      email: email.trim().toLowerCase(),
-      token: otp,
-      type: "signup",
-    });
-    setLoading(false);
-    if (verifyError) { setError(verifyError.message); return; }
-    // Session is set automatically via onAuthStateChange → App.tsx routes to /profile
-  };
-
-  const handleResend = async () => {
-    setError("");
-    setLoading(true);
-    const { error: resendError } = await supabase.auth.resend({
-      type: "signup",
-      email: email.trim().toLowerCase(),
-    });
-    setLoading(false);
-    if (resendError) { setError(resendError.message); return; }
-    setError("");
-    setOtp("");
   };
 
   return (
@@ -88,68 +58,47 @@ const LoginPage = () => {
             WALTZ
           </motion.h1>
           <p className="text-muted-foreground font-body text-sm">
-            {view === "verify" ? "Almost there 📧" : isSignUp ? "Join the Dance Floor 🌸" : "Welcome back 🌸"}
+            {signUpSuccess ? "Almost there 📧" : isSignUp ? "Join the Dance Floor 🌸" : "Welcome back 🌸"}
           </p>
         </div>
 
-        {view === "verify" ? (
-          <div className="glass-strong rounded-2xl p-6 space-y-5 blossom-glow">
-            <div className="text-center space-y-3">
-              <motion.div
-                animate={{ y: [0, -5, 0] }}
-                transition={{ duration: 2, repeat: Infinity }}
-              >
-                <Mail className="w-12 h-12 mx-auto text-blossom" />
-              </motion.div>
-              <h2 className="font-display text-xl text-foreground">Check Your Email</h2>
-              <p className="text-muted-foreground font-body text-sm">
-                We sent a 6-digit code to<br />
-                <strong className="text-foreground">{email}</strong>
-              </p>
-            </div>
-
-            <div className="flex justify-center">
-              <InputOTP maxLength={6} value={otp} onChange={setOtp}>
-                <InputOTPGroup>
-                  <InputOTPSlot index={0} />
-                  <InputOTPSlot index={1} />
-                  <InputOTPSlot index={2} />
-                  <InputOTPSlot index={3} />
-                  <InputOTPSlot index={4} />
-                  <InputOTPSlot index={5} />
-                </InputOTPGroup>
-              </InputOTP>
-            </div>
-
-            {error && (
-              <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-maroon text-sm font-body text-center">
-                {error}
-              </motion.p>
-            )}
+        {signUpSuccess ? (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="glass-strong rounded-2xl p-6 space-y-5 blossom-glow text-center"
+          >
+            <motion.div
+              animate={{ y: [0, -5, 0] }}
+              transition={{ duration: 2, repeat: Infinity }}
+            >
+              <CheckCircle className="w-12 h-12 mx-auto text-blossom" />
+            </motion.div>
+            <h2 className="font-display text-xl text-foreground">Check Your Email</h2>
+            <p className="text-muted-foreground font-body text-sm">
+              We sent a confirmation link to<br />
+              <strong className="text-foreground">{email}</strong>
+            </p>
+            <p className="text-muted-foreground/60 font-body text-xs">
+              Click the link in your email to verify your account, then come back and sign in.
+            </p>
 
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              onClick={handleVerifyOtp}
-              disabled={otp.length < 6 || loading}
-              className="btn-waltz w-full text-base disabled:opacity-60"
+              onClick={() => { setSignUpSuccess(false); setIsSignUp(false); setError(""); }}
+              className="btn-waltz w-full text-base"
             >
-              {loading ? "Verifying..." : "Verify Email"}
+              I've verified — Sign In
             </motion.button>
 
-            <div className="text-center space-y-2">
-              <button onClick={handleResend} disabled={loading} className="text-sm text-blossom font-body hover:underline">
-                Resend code
-              </button>
-              <br />
-              <button
-                onClick={() => { setView("form"); setOtp(""); setError(""); }}
-                className="text-sm text-muted-foreground font-body hover:underline flex items-center gap-1 mx-auto"
-              >
-                <ArrowLeft className="w-3 h-3" /> Back to sign up
-              </button>
-            </div>
-          </div>
+            <button
+              onClick={() => { setSignUpSuccess(false); setError(""); }}
+              className="text-sm text-muted-foreground font-body hover:underline flex items-center gap-1 mx-auto"
+            >
+              <ArrowLeft className="w-3 h-3" /> Back
+            </button>
+          </motion.div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="glass-strong rounded-2xl p-6 space-y-4 blossom-glow">

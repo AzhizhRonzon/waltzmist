@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronRight, AlertTriangle } from "lucide-react";
+import { ChevronRight, AlertTriangle, Info } from "lucide-react";
 import PhotoUpload from "./PhotoUpload";
 import { useWaltzStore } from "../context/WaltzStore";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface ProfileFormData {
   name: string;
@@ -136,8 +137,16 @@ const ProfileSetup = ({ onComplete }: ProfileSetupProps) => {
       </div>
 
       <div>
-        <label className="text-sm text-muted-foreground font-body block mb-2">
+        <label className="text-sm text-muted-foreground font-body flex items-center gap-1.5 mb-2">
           Section Pride <span className="text-muted-foreground/50">(optional)</span>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Info className="w-3.5 h-3.5 text-muted-foreground/60 cursor-help" />
+            </TooltipTrigger>
+            <TooltipContent>
+              <p className="text-xs max-w-[200px]">Sections are only for PGP25. If you're from another program, feel free to skip this.</p>
+            </TooltipContent>
+          </Tooltip>
         </label>
         <p className="text-xs text-muted-foreground/70 mb-2 italic font-body">
           "Choose wisely. Cross-batch dating is high risk, high reward."
