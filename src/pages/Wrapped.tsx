@@ -94,6 +94,15 @@ const WrappedPage = () => {
   return (
     <div className="min-h-screen breathing-bg flex flex-col relative overflow-hidden">
       <FallingPetals count={15} />
+
+      {/* Exit button — always visible */}
+      <button
+        onClick={() => navigate("/discover")}
+        className="absolute top-4 right-4 z-30 glass rounded-full px-4 py-1.5 text-xs font-body text-muted-foreground hover:text-foreground hover:border-blossom/30 border border-transparent transition-all"
+      >
+        ✕ Exit
+      </button>
+
       <div className="relative z-20 flex items-center justify-center gap-2 pt-6 pb-2">
         {slides.map((_, i) => (
           <div key={i} className="h-2 rounded-full transition-all duration-300"

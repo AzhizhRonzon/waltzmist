@@ -77,11 +77,11 @@ const ColdWeatherOverlay = ({ temp }: { temp: number | null }) => {
         </motion.div>
       ))}
 
-      {/* Temperature badge */}
+      {/* Temperature badge — positioned in empty space to avoid overlap */}
       <motion.div
-        initial={{ opacity: 0, y: -20 }}
+        initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="absolute top-4 left-4 glass rounded-full px-3 py-1.5 flex items-center gap-1.5 pointer-events-auto"
+        className="absolute bottom-24 right-4 glass rounded-full px-3 py-1.5 flex items-center gap-1.5 pointer-events-auto"
         style={{ border: "1px solid hsl(200 80% 70% / 0.3)" }}
       >
         <Snowflake className="w-3.5 h-3.5" style={{ color: "hsl(200 80% 70%)" }} />

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { EyeOff, Heart, HelpCircle } from "lucide-react";
+import { EyeOff, Heart, HelpCircle, Search } from "lucide-react";
 import type { CrushData } from "../context/WaltzStore";
 import { useWaltzStore } from "../context/WaltzStore";
 
@@ -12,19 +12,36 @@ interface SecretAdmirerCardProps {
 const SecretAdmirerCard = ({ crush, onGuess }: SecretAdmirerCardProps) => {
   const { allProfiles } = useWaltzStore();
   const [showGuess, setShowGuess] = useState(false);
+  const [guessName, setGuessName] = useState("");
   const [result, setResult] = useState<"correct" | "wrong" | null>(null);
   const [guessing, setGuessing] = useState(false);
 
-  // Only show sender info if revealed
   const sender = crush.revealed ? allProfiles.find((p) => p.id === crush.fromId) : null;
 
-  const handleGuess = async (guessId: string) => {
-    if (guessing) return;
+  const handleNameGuess = async () => {
+    if (!guessName.trim() || guessing) return;
     setGuessing(true);
-    const correct = await onGuess(crush.id, guessId);
-    setResult(correct ? "correct" : "wrong");
+
+    // Find sender profile to compare names
+    const senderProfile = allProfiles.find(p => p.id === crush.fromId);
+    if (!senderProfile) { setGuessing(false); return; }
+
+    const senderFirstName = senderProfile.name.split(" ")[0].toLowerCase().trim();
+    const senderFullName = senderProfile.name.toLowerCase().trim();
+    const guessedName = guessName.trim().toLowerCase();
+
+    const isCorrect = guessedName === senderFirstName || guessedName === senderFullName;
+
+    if (isCorrect) {
+      await onGuess(crush.id, crush.fromId);
+      setResult("correct");
+    } else {
+      await onGuess(crush.id, "wrong-guess-" + Date.now());
+      setResult("wrong");
+    }
     setGuessing(false);
-    if (!correct) setTimeout(() => setResult(null), 1500);
+    setGuessName("");
+    if (!isCorrect) setTimeout(() => setResult(null), 2000);
   };
 
   if (crush.revealed && sender) {
@@ -48,7 +65,6 @@ const SecretAdmirerCard = ({ crush, onGuess }: SecretAdmirerCardProps) => {
 
   return (
     <motion.div layout className="glass-strong rounded-3xl overflow-hidden" style={{ boxShadow: "0 0 40px hsl(45 100% 60% / 0.15)" }}>
-      {/* Blurred area — no sender photo, just mystery */}
       <div className="relative h-40 overflow-hidden" style={{ background: "linear-gradient(135deg, hsl(var(--maroon-deep)), hsl(var(--night)))" }}>
         <div className="absolute inset-0 flex items-center justify-center">
           <motion.div animate={{ scale: [1, 1.05, 1] }} transition={{ duration: 2, repeat: Infinity }} className="text-center">
@@ -74,7 +90,7 @@ const SecretAdmirerCard = ({ crush, onGuess }: SecretAdmirerCardProps) => {
           )}
           {result === "wrong" && (
             <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} className="glass rounded-2xl p-3 text-center mb-3 border border-maroon/30">
-              <span className="text-maroon font-body text-sm">Nope! {crush.guessesLeft - 1} guesses left</span>
+              <span className="text-maroon font-body text-sm">Nope! {Math.max(crush.guessesLeft - 1, 0)} guesses left</span>
             </motion.div>
           )}
         </AnimatePresence>
@@ -94,22 +110,31 @@ const SecretAdmirerCard = ({ crush, onGuess }: SecretAdmirerCardProps) => {
         <AnimatePresence>
           {showGuess && (
             <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden mt-3">
-              <p className="text-xs text-muted-foreground font-body mb-2">Who do you think it is?</p>
-              <div className="space-y-1.5 max-h-48 overflow-y-auto">
-                {allProfiles.map((p) => (
-                  <button
-                    key={p.id}
-                    onClick={() => handleGuess(p.id)}
+              <p className="text-xs text-muted-foreground font-body mb-1">Type the name of who you think it is:</p>
+              <p className="text-[10px] text-blossom/60 font-body mb-2 italic">💡 Even a matching first name counts!</p>
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <input
+                    type="text"
+                    value={guessName}
+                    onChange={(e) => setGuessName(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter") handleNameGuess(); }}
+                    placeholder="Their name..."
+                    className="w-full bg-input rounded-xl pl-10 pr-4 py-2.5 text-foreground font-body text-sm placeholder:text-muted-foreground/40 focus:outline-none focus:ring-2 focus:ring-blossom/30"
+                    maxLength={50}
                     disabled={guessing}
-                    className="w-full flex items-center gap-3 px-3 py-2 rounded-xl glass hover:border-blossom/20 border border-transparent transition-all text-left disabled:opacity-50"
-                  >
-                    <img src={p.photos[0]} alt={p.name} className="w-8 h-8 rounded-full object-cover" />
-                    <div>
-                      <span className="text-sm text-foreground font-body">{p.name}</span>
-                      <span className="text-[10px] text-muted-foreground ml-2">{p.batch}</span>
-                    </div>
-                  </button>
-                ))}
+                  />
+                </div>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={handleNameGuess}
+                  disabled={!guessName.trim() || guessing}
+                  className="btn-waltz px-4 py-2.5 text-sm disabled:opacity-40"
+                >
+                  {guessing ? "..." : "Guess"}
+                </motion.button>
               </div>
             </motion.div>
           )}

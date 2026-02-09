@@ -13,13 +13,16 @@ const SendCrushModal = ({ onSend, onClose, crushesRemaining }: SendCrushModalPro
   const { allProfiles } = useWaltzStore();
   const [selectedProfile, setSelectedProfile] = useState<string | null>(null);
   const [selectedHint, setSelectedHint] = useState<string | null>(null);
+  const [customHint, setCustomHint] = useState("");
   const [sent, setSent] = useState(false);
   const [sending, setSending] = useState(false);
 
+  const finalHint = customHint.trim() || selectedHint;
+
   const handleSend = async () => {
-    if (!selectedProfile || !selectedHint || sending) return;
+    if (!selectedProfile || !finalHint || sending) return;
     setSending(true);
-    const result = await onSend(selectedProfile, selectedHint);
+    const result = await onSend(selectedProfile, finalHint);
     setSending(false);
     if (result) setSent(true);
   };
@@ -72,6 +75,7 @@ const SendCrushModal = ({ onSend, onClose, crushesRemaining }: SendCrushModalPro
               <>
                 <p className="text-xs text-muted-foreground/70 font-body mb-4">Choose someone and a hint. Your identity stays hidden.</p>
 
+                {/* Crush target — dropdown */}
                 <div className="mb-4">
                   <p className="text-xs text-muted-foreground font-body uppercase tracking-widest mb-2">Who's your crush?</p>
                   <div className="space-y-1.5 max-h-40 overflow-y-auto">
@@ -95,15 +99,18 @@ const SendCrushModal = ({ onSend, onClose, crushesRemaining }: SendCrushModalPro
                   </div>
                 </div>
 
-                <div className="mb-5">
+                {/* Hint selection */}
+                <div className="mb-3">
                   <p className="text-xs text-muted-foreground font-body uppercase tracking-widest mb-2">Drop a hint</p>
                   <div className="space-y-2">
                     {CRUSH_HINTS.map((hint) => (
                       <button
                         key={hint}
-                        onClick={() => setSelectedHint(hint)}
+                        onClick={() => { setSelectedHint(hint); setCustomHint(""); }}
                         className={`w-full text-left px-4 py-3 rounded-2xl font-body text-sm transition-all border ${
-                          selectedHint === hint ? "border-blossom/40 bg-blossom/10 text-blossom" : "border-transparent glass text-foreground hover:border-blossom/20"
+                          selectedHint === hint && !customHint
+                            ? "border-blossom/40 bg-blossom/10 text-blossom"
+                            : "border-transparent glass text-foreground hover:border-blossom/20"
                         }`}
                       >
                         "{hint}"
@@ -112,11 +119,24 @@ const SendCrushModal = ({ onSend, onClose, crushesRemaining }: SendCrushModalPro
                   </div>
                 </div>
 
+                {/* Custom hint */}
+                <div className="mb-5">
+                  <p className="text-xs text-muted-foreground font-body uppercase tracking-widest mb-2">Or write your own hint ✏️</p>
+                  <input
+                    type="text"
+                    value={customHint}
+                    onChange={(e) => { setCustomHint(e.target.value); if (e.target.value.trim()) setSelectedHint(null); }}
+                    placeholder="We once fought over the last samosa..."
+                    className="w-full bg-input rounded-xl px-4 py-3 text-foreground font-body text-sm placeholder:text-muted-foreground/40 focus:outline-none focus:ring-2 focus:ring-blossom/30"
+                    maxLength={120}
+                  />
+                </div>
+
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={handleSend}
-                  disabled={!selectedProfile || !selectedHint || sending}
+                  disabled={!selectedProfile || !finalHint || sending}
                   className="btn-waltz w-full flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   <Send className="w-4 h-4" />
