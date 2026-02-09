@@ -17,7 +17,7 @@ import ProfileEditModal from "@/components/ProfileEditModal";
 
 const DiscoverPage = () => {
   const navigate = useNavigate();
-  const { discoverQueue, swipeLeft, swipeRight, sendNudge, canNudgeToday, dataLoading, secretAdmirerCount, secretAdmirerHints, fetchSecretAdmirers } = useWaltzStore();
+  const { discoverQueue, swipeLeft, swipeRight, swipesRemaining, sendNudge, canNudgeToday, dataLoading, secretAdmirerCount, secretAdmirerHints, fetchSecretAdmirers } = useWaltzStore();
   const [matchedProfile, setMatchedProfile] = useState<{ id: string; name: string } | null>(null);
   const [nudgeTarget, setNudgeTarget] = useState<{ id: string; name: string } | null>(null);
   const [swiping, setSwiping] = useState(false);
@@ -35,6 +35,10 @@ const DiscoverPage = () => {
   const handleSwipe = async (direction: "left" | "right") => {
     const current = discoverQueue[discoverQueue.length - 1];
     if (!current || swiping) return;
+    if (swipesRemaining <= 0) {
+      toast({ title: "Daily limit reached 🛑", description: "Come back tomorrow for more swipes!", variant: "destructive" });
+      return;
+    }
     setSwiping(true);
     playSwipeSound();
     if (direction === "left") {
@@ -51,7 +55,7 @@ const DiscoverPage = () => {
 
   return (
     <div className="min-h-screen breathing-bg flex flex-col relative pb-20">
-      <FallingPetals count={10} />
+      <FallingPetals count={8} />
 
       <header className="relative z-20 px-5 pt-5 pb-3 flex items-center justify-between">
         <div>
@@ -61,6 +65,13 @@ const DiscoverPage = () => {
           </p>
         </div>
         <div className="flex items-center gap-3">
+          {/* Swipe counter */}
+          <div className="glass rounded-full px-2.5 py-1 flex items-center gap-1">
+            <span className={`text-[11px] font-body font-semibold ${swipesRemaining <= 5 ? "text-destructive" : "text-blossom"}`}>
+              {swipesRemaining}
+            </span>
+            <span className="text-[9px] text-muted-foreground font-body">left</span>
+          </div>
           <button onClick={() => setShowEditProfile(true)} className="p-2 rounded-full hover:bg-secondary/50 transition-colors">
             <Settings className="w-4 h-4 text-muted-foreground" />
           </button>
@@ -77,6 +88,12 @@ const DiscoverPage = () => {
         <div className="relative w-full h-full max-w-sm mx-auto" style={{ minHeight: "60vh" }}>
           {dataLoading ? (
             <SkeletonCard />
+          ) : swipesRemaining <= 0 ? (
+            <div className="flex flex-col items-center justify-center h-full text-center">
+              <div className="text-5xl mb-4">⏰</div>
+              <h2 className="font-display text-2xl text-foreground mb-2">Daily Limit Reached</h2>
+              <p className="text-muted-foreground font-body text-sm">You've used all your swipes today.<br />Come back tomorrow for more! 🌸</p>
+            </div>
           ) : discoverQueue.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-center">
               <Sparkles className="w-12 h-12 text-blossom/40 mb-4" />
@@ -100,7 +117,7 @@ const DiscoverPage = () => {
         </div>
       </div>
 
-      {discoverQueue.length > 0 && !dataLoading && (
+      {discoverQueue.length > 0 && !dataLoading && swipesRemaining > 0 && (
         <div className="relative z-20 pb-4">
           <SwipeActions onLeft={() => handleSwipe("left")} onRight={() => handleSwipe("right")} panicMode={isPanicMode} />
         </div>

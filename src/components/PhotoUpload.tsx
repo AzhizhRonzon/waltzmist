@@ -1,8 +1,9 @@
 import { useState, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { Camera, X, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { compressImage } from "@/lib/imageCompression";
 
 interface PhotoUploadProps {
   userId: string;
@@ -20,42 +21,47 @@ const PhotoUpload = ({ userId, photos, onChange, maxPhotos = 4 }: PhotoUploadPro
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validate file
     if (!file.type.startsWith("image/")) {
       toast({ title: "Invalid file", description: "Please upload an image file.", variant: "destructive" });
       return;
     }
-    if (file.size > 5 * 1024 * 1024) {
-      toast({ title: "File too large", description: "Max 5MB per photo.", variant: "destructive" });
+    if (file.size > 10 * 1024 * 1024) {
+      toast({ title: "File too large", description: "Max 10MB per photo.", variant: "destructive" });
       return;
     }
 
     setUploading(targetSlot);
 
-    const fileExt = file.name.split(".").pop();
-    const filePath = `${userId}/${targetSlot}-${Date.now()}.${fileExt}`;
+    try {
+      // Compress image before upload
+      const compressed = await compressImage(file, 800, 800, 0.8);
 
-    const { error: uploadError } = await supabase.storage
-      .from("profile-photos")
-      .upload(filePath, file, { upsert: true });
+      const fileExt = "jpg";
+      const filePath = `${userId}/${targetSlot}-${Date.now()}.${fileExt}`;
 
-    if (uploadError) {
-      toast({ title: "Upload failed", description: uploadError.message, variant: "destructive" });
+      const { error: uploadError } = await supabase.storage
+        .from("profile-photos")
+        .upload(filePath, compressed, { upsert: true, contentType: "image/jpeg" });
+
+      if (uploadError) {
+        toast({ title: "Upload failed", description: uploadError.message, variant: "destructive" });
+        setUploading(null);
+        return;
+      }
+
+      const { data: urlData } = supabase.storage
+        .from("profile-photos")
+        .getPublicUrl(filePath);
+
+      const newPhotos = [...photos];
+      newPhotos[targetSlot] = urlData.publicUrl;
+      onChange(newPhotos.filter(Boolean));
+    } catch {
+      toast({ title: "Upload failed", description: "Could not process the image.", variant: "destructive" });
+    } finally {
       setUploading(null);
-      return;
+      if (inputRef.current) inputRef.current.value = "";
     }
-
-    const { data: urlData } = supabase.storage
-      .from("profile-photos")
-      .getPublicUrl(filePath);
-
-    const newPhotos = [...photos];
-    newPhotos[targetSlot] = urlData.publicUrl;
-    onChange(newPhotos.filter(Boolean));
-    setUploading(null);
-
-    // Reset input
-    if (inputRef.current) inputRef.current.value = "";
   };
 
   const removePhoto = (index: number) => {
@@ -67,13 +73,7 @@ const PhotoUpload = ({ userId, photos, onChange, maxPhotos = 4 }: PhotoUploadPro
 
   return (
     <div className="flex gap-3">
-      <input
-        ref={inputRef}
-        type="file"
-        accept="image/*"
-        className="hidden"
-        onChange={handleFileSelect}
-      />
+      <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={handleFileSelect} />
       {slots.map((photo, i) => (
         <motion.div
           key={i}
@@ -86,15 +86,13 @@ const PhotoUpload = ({ userId, photos, onChange, maxPhotos = 4 }: PhotoUploadPro
           }}
           className="relative w-20 h-20 rounded-2xl overflow-hidden cursor-pointer border transition-colors"
           style={{
-            borderColor: photo
-              ? "hsl(var(--blossom) / 0.3)"
-              : "hsl(var(--glass-border) / 0.3)",
+            borderColor: photo ? "hsl(var(--blossom) / 0.3)" : "hsl(var(--glass-border) / 0.3)",
             background: photo ? "transparent" : "hsl(var(--glass-bg) / 0.6)",
           }}
         >
           {photo ? (
             <>
-              <img src={photo} alt={`Photo ${i + 1}`} className="w-full h-full object-cover" />
+              <img src={photo} alt={`Photo ${i + 1}`} className="w-full h-full object-cover" loading="lazy" />
               <button
                 onClick={(e) => { e.stopPropagation(); removePhoto(i); }}
                 className="absolute top-0.5 right-0.5 w-5 h-5 rounded-full flex items-center justify-center"
@@ -112,7 +110,6 @@ const PhotoUpload = ({ userId, photos, onChange, maxPhotos = 4 }: PhotoUploadPro
               )}
             </div>
           )}
-
           {i === 0 && !photo && (
             <span className="absolute bottom-0.5 left-0 right-0 text-center text-[8px] text-muted-foreground/60 font-body">
               Required
