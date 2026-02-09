@@ -11,6 +11,7 @@ const WITTY_EMPTY_STATES = [
   "Your inbox is emptier than the mess at midnight.",
   "No whispers yet. Even the WiFi is more connected than you.",
   "The silence is louder than the prof's mic in Auditorium.",
+  "Your DMs are drier than the mess dal.",
 ];
 
 const WhispersPage = () => {
@@ -24,7 +25,7 @@ const WhispersPage = () => {
     <div className="min-h-screen breathing-bg flex flex-col relative pb-20">
       <FallingPetals count={6} />
 
-      <header className="relative z-20 px-4 sm:px-5 pt-4 sm:pt-5 pb-2">
+      <header className="relative z-20 px-3 sm:px-5 pt-3 sm:pt-5 pb-2">
         <div className="flex items-center justify-between mb-3 sm:mb-4">
           <div>
             <h1 className="font-display text-2xl sm:text-3xl font-bold text-foreground">Whisper Room</h1>
@@ -37,13 +38,13 @@ const WhispersPage = () => {
             </div>
           )}
         </div>
-        <div className="glass rounded-2xl px-4 py-3 flex items-center justify-between">
-          <span className="text-[10px] text-muted-foreground font-body uppercase tracking-widest">Waltz Night in</span>
-          <CountdownTimer />
+        <div className="glass rounded-2xl px-3 sm:px-4 py-2.5 sm:py-3 flex items-center justify-between gap-2">
+          <span className="text-[9px] sm:text-[10px] text-muted-foreground font-body uppercase tracking-widest flex-shrink-0">Waltz Night in</span>
+          <CountdownTimer compact />
         </div>
       </header>
 
-      <div className="flex-1 relative z-10 px-4 sm:px-5 mt-3 sm:mt-4 space-y-4">
+      <div className="flex-1 relative z-10 px-3 sm:px-5 mt-3 sm:mt-4 space-y-4">
         {unseenNudges.length > 0 && (
           <div>
             <h2 className="font-display text-sm text-blossom mb-2 flex items-center gap-1.5">
@@ -52,13 +53,13 @@ const WhispersPage = () => {
             <div className="space-y-2">
               {unseenNudges.map((nudge, i) => (
                 <motion.div key={nudge.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }}
-                  className="glass rounded-2xl p-4 border border-blossom/20 blossom-glow">
-                  <div className="flex items-start justify-between">
+                  className="glass rounded-2xl p-3 sm:p-4 border border-blossom/20 blossom-glow">
+                  <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
                       <p className="text-[10px] text-blossom uppercase tracking-widest font-body mb-1">Someone nudged you 👀</p>
                       <p className="text-sm text-foreground font-body italic truncate">"{nudge.message}"</p>
                     </div>
-                    <button onClick={() => markNudgeSeen(nudge.id)} className="text-[10px] text-muted-foreground font-body hover:text-foreground transition-colors ml-2 flex-shrink-0">Dismiss</button>
+                    <button onClick={() => markNudgeSeen(nudge.id)} className="text-[10px] text-muted-foreground font-body hover:text-foreground transition-colors flex-shrink-0">Dismiss</button>
                   </div>
                 </motion.div>
               ))}
@@ -72,18 +73,24 @@ const WhispersPage = () => {
           </div>
         ) : !hasMatches ? (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col items-center justify-center text-center py-16 sm:py-20">
-            <div className="w-20 h-20 rounded-full glass flex items-center justify-center mb-5">
+            <motion.div
+              animate={{ y: [0, -8, 0] }}
+              transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+              className="w-20 h-20 rounded-full glass flex items-center justify-center mb-5"
+            >
               <MessageCircle className="w-8 h-8 text-blossom/40" />
-            </div>
+            </motion.div>
             <h2 className="font-display text-xl sm:text-2xl text-foreground mb-2">No Whispers Yet</h2>
             <p className="text-muted-foreground font-body text-sm max-w-[260px]">{emptyMessage}</p>
             <button onClick={() => navigate("/discover")} className="btn-waltz mt-6">Start Swiping</button>
+            <p className="text-[10px] text-muted-foreground/40 font-body mt-3">
+              Tip: Double-tap a card to send love vibes ✨
+            </p>
           </motion.div>
         ) : (
           <div className="space-y-2">
             {matches
               .sort((a, b) => {
-                // Sort by unread first, then by last message time
                 if (a.unread > 0 && b.unread === 0) return -1;
                 if (b.unread > 0 && a.unread === 0) return 1;
                 return 0;
@@ -100,7 +107,7 @@ const WhispersPage = () => {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between">
-                    <h3 className="font-display text-sm sm:text-base text-foreground">{match.profile.name}</h3>
+                    <h3 className="font-display text-sm sm:text-base text-foreground truncate">{match.profile.name}</h3>
                     {match.lastMessageTime && <span className="text-[10px] text-muted-foreground font-body flex-shrink-0 ml-2">{match.lastMessageTime}</span>}
                   </div>
                   <div className="flex items-center justify-between mt-0.5">

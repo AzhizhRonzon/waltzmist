@@ -25,6 +25,7 @@ const DiscoverPage = () => {
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
   const [loveBurst, setLoveBurst] = useState<{ x: number; y: number } | null>(null);
+  const [superlikedId, setSuperlikedId] = useState<string | null>(null);
 
   useEffect(() => { fetchSecretAdmirers(); }, []);
 
@@ -58,6 +59,28 @@ const DiscoverPage = () => {
     setSwiping(false);
   };
 
+  const handleSuperlike = async () => {
+    const current = discoverQueue[discoverQueue.length - 1];
+    if (!current || swiping) return;
+    if (swipesRemaining <= 0) {
+      toast({ title: "Daily limit reached 🛑", description: "Come back tomorrow!", variant: "destructive" });
+      return;
+    }
+    setSwiping(true);
+    setSuperlikedId(current.id);
+    playSwipeSound();
+    toast({ title: "⭐ Superliked!", description: `You superliked ${current.name}. They'll know!` });
+    const matched = await swipeRight(current.id);
+    if (matched) {
+      playMatchSound();
+      setShowConfetti(true);
+      setTimeout(() => setShowConfetti(false), 2000);
+      setMatchedProfile({ id: current.id, name: current.name });
+    }
+    setTimeout(() => setSuperlikedId(null), 1000);
+    setSwiping(false);
+  };
+
   // Double-tap like easter egg
   const handleDoubleTap = (e: React.MouseEvent) => {
     setLoveBurst({ x: e.clientX, y: e.clientY });
@@ -70,34 +93,35 @@ const DiscoverPage = () => {
       <ConfettiBurst active={showConfetti} />
       {loveBurst && <LoveBurst x={loveBurst.x} y={loveBurst.y} />}
 
-      <header className="relative z-20 px-4 sm:px-5 pt-4 sm:pt-5 pb-2 sm:pb-3 flex items-center justify-between">
-        <div>
+      <header className="relative z-20 px-3 sm:px-5 pt-3 sm:pt-5 pb-2 sm:pb-3 flex items-center justify-between">
+        <div className="flex-shrink-0">
           <h1 className="font-display text-xl sm:text-2xl font-bold blossom-text">WALTZ</h1>
           <p className="text-[9px] sm:text-[10px] text-muted-foreground font-body uppercase tracking-widest mt-0.5">
             {isPanicMode ? "⚡ PANIC MODE ⚡" : "Find your partner"}
           </p>
         </div>
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex items-center gap-1.5 sm:gap-3 flex-shrink-0">
           {/* Swipe counter */}
-          <div className="glass rounded-full px-2 sm:px-2.5 py-1 flex items-center gap-1">
+          <div className="glass rounded-full px-2 py-1 flex items-center gap-1">
             <span className={`text-[11px] font-body font-semibold ${swipesRemaining <= 5 ? "text-destructive" : "text-blossom"}`}>
               {swipesRemaining}
             </span>
             <span className="text-[9px] text-muted-foreground font-body">left</span>
           </div>
-          <button onClick={() => setShowEditProfile(true)} className="p-2 rounded-full hover:bg-secondary/50 transition-colors" aria-label="Settings">
+          <button onClick={() => setShowEditProfile(true)} className="p-1.5 sm:p-2 rounded-full hover:bg-secondary/50 transition-colors" aria-label="Settings">
             <Settings className="w-4 h-4 text-muted-foreground" />
           </button>
-          <CountdownTimer />
+          {/* Compact countdown that fits on mobile */}
+          <CountdownTimer compact />
         </div>
       </header>
 
       {/* Who liked me teaser */}
-      <div className="relative z-10 px-4 sm:px-5">
+      <div className="relative z-10 px-3 sm:px-5">
         <WhoLikedMe count={secretAdmirerCount} hints={secretAdmirerHints} />
       </div>
 
-      <div className="flex-1 relative z-10 px-4 sm:px-5 pb-2" onDoubleClick={handleDoubleTap}>
+      <div className="flex-1 relative z-10 px-3 sm:px-5 pb-2" onDoubleClick={handleDoubleTap}>
         <div className="relative w-full h-full max-w-sm mx-auto" style={{ minHeight: "55vh" }}>
           {dataLoading ? (
             <SkeletonCard />
@@ -130,6 +154,7 @@ const DiscoverPage = () => {
                   isTop={i === discoverQueue.slice(-2).length - 1}
                   onSwipeLeft={() => handleSwipe("left")}
                   onSwipeRight={() => handleSwipe("right")}
+                  onSuperlike={handleSuperlike}
                   onNudge={() => setNudgeTarget({ id: profile.id, name: profile.name })}
                 />
               ))}
@@ -140,7 +165,12 @@ const DiscoverPage = () => {
 
       {discoverQueue.length > 0 && !dataLoading && swipesRemaining > 0 && (
         <div className="relative z-20 pb-4">
-          <SwipeActions onLeft={() => handleSwipe("left")} onRight={() => handleSwipe("right")} panicMode={isPanicMode} />
+          <SwipeActions
+            onLeft={() => handleSwipe("left")}
+            onRight={() => handleSwipe("right")}
+            onSuperlike={handleSuperlike}
+            panicMode={isPanicMode}
+          />
         </div>
       )}
 

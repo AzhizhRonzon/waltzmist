@@ -1,24 +1,28 @@
 import { useState, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Heart, X, Sparkles, Zap, ChevronLeft, ChevronRight } from "lucide-react";
+import { motion, AnimatePresence, PanInfo } from "framer-motion";
+import { Heart, X, Sparkles, Zap, ChevronLeft, ChevronRight, Star } from "lucide-react";
 import type { ProfileData } from "../context/WaltzStore";
 
 interface SwipeCardProps {
   profile: ProfileData;
   onSwipeLeft: () => void;
   onSwipeRight: () => void;
+  onSuperlike?: () => void;
   onNudge?: () => void;
   isTop: boolean;
 }
 
-const SwipeCard = ({ profile, onSwipeLeft, onSwipeRight, onNudge, isTop }: SwipeCardProps) => {
+const SwipeCard = ({ profile, onSwipeLeft, onSwipeRight, onSuperlike, onNudge, isTop }: SwipeCardProps) => {
   const [dragX, setDragX] = useState(0);
+  const [dragY, setDragY] = useState(0);
   const [photoIndex, setPhotoIndex] = useState(0);
   const [expanded, setExpanded] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const hasMultiplePhotos = profile.photos.length > 1;
 
-  const getSwipeDirection = () => {
+  const getSwipeDirection = (): "left" | "right" | "up" | null => {
+    if (dragY < -80 && Math.abs(dragX) < 60) return "up";
     if (dragX > 50) return "right";
     if (dragX < -50) return "left";
     return null;
@@ -26,39 +30,73 @@ const SwipeCard = ({ profile, onSwipeLeft, onSwipeRight, onNudge, isTop }: Swipe
 
   const prevPhoto = (e: React.MouseEvent | React.TouchEvent) => {
     e.stopPropagation();
+    if (isDragging) return;
     setPhotoIndex((i) => (i === 0 ? profile.photos.length - 1 : i - 1));
   };
 
   const nextPhoto = (e: React.MouseEvent | React.TouchEvent) => {
     e.stopPropagation();
+    if (isDragging) return;
     setPhotoIndex((i) => (i === profile.photos.length - 1 ? 0 : i + 1));
   };
 
+  const handleDragStart = () => {
+    setIsDragging(true);
+  };
+
+  const handleDrag = (_: any, info: PanInfo) => {
+    setDragX(info.offset.x);
+    setDragY(info.offset.y);
+  };
+
+  const handleDragEnd = (_: any, info: PanInfo) => {
+    const { x, y } = info.offset;
+    const vx = info.velocity.x;
+    const vy = info.velocity.y;
+
+    // Superlike: swipe up
+    if (y < -80 && Math.abs(x) < 60 && onSuperlike) {
+      onSuperlike();
+    }
+    // Right swipe: position or velocity
+    else if (x > 80 || vx > 500) {
+      onSwipeRight();
+    }
+    // Left swipe: position or velocity
+    else if (x < -80 || vx < -500) {
+      onSwipeLeft();
+    }
+
+    setDragX(0);
+    setDragY(0);
+    setTimeout(() => setIsDragging(false), 100);
+  };
+
+  const exitVariant = (() => {
+    const dir = getSwipeDirection();
+    if (dir === "up") return { y: -600, opacity: 0, scale: 0.8 };
+    if (dir === "right") return { x: 400, rotate: 20, opacity: 0 };
+    return { x: -400, rotate: -20, opacity: 0 };
+  })();
+
   return (
     <motion.div
-      className="absolute inset-0 cursor-grab active:cursor-grabbing"
+      className="absolute inset-0 touch-none"
       style={{ zIndex: isTop ? 10 : 1 }}
-      drag={isTop ? "x" : false}
-      dragConstraints={{ left: 0, right: 0 }}
-      dragElastic={0.8}
-      onDrag={(_, info) => setDragX(info.offset.x)}
-      onDragEnd={(_, info) => {
-        if (info.offset.x > 120) onSwipeRight();
-        else if (info.offset.x < -120) onSwipeLeft();
-        setDragX(0);
-      }}
-      animate={isTop ? { rotate: dragX * 0.05 } : { scale: 0.95, y: 10 }}
-      exit={
-        getSwipeDirection() === "right"
-          ? { x: 400, rotate: 20, opacity: 0 }
-          : { x: -400, rotate: -20, opacity: 0 }
-      }
+      drag={isTop ? true : false}
+      dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
+      dragElastic={0.7}
+      onDragStart={handleDragStart}
+      onDrag={handleDrag}
+      onDragEnd={handleDragEnd}
+      animate={isTop ? { rotate: dragX * 0.04, y: Math.min(dragY * 0.3, 0) } : { scale: 0.95, y: 10 }}
+      exit={exitVariant}
       transition={{ type: "spring", stiffness: 300, damping: 25 }}
     >
       <div className="glass-strong rounded-3xl overflow-hidden h-full flex flex-col blossom-glow">
-        {/* Photo area with responsive carousel */}
+        {/* Photo area */}
         <div
-          className="relative overflow-hidden transition-all duration-300"
+          className="relative overflow-hidden transition-all duration-300 flex-shrink-0"
           style={{ height: expanded ? "40%" : "55%" }}
         >
           <AnimatePresence mode="wait">
@@ -141,6 +179,19 @@ const SwipeCard = ({ profile, onSwipeLeft, onSwipeRight, onNudge, isTop }: Swipe
                 className="absolute top-6 right-6 bg-muted/20 backdrop-blur-sm border-2 border-muted-foreground rounded-2xl px-6 py-2 z-20"
               >
                 <span className="text-muted-foreground font-display text-2xl font-bold">PASS</span>
+              </motion.div>
+            )}
+            {dragY < -80 && Math.abs(dragX) < 60 && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.5 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0 }}
+                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 backdrop-blur-sm border-2 rounded-2xl px-6 py-3 z-20"
+                style={{ background: "hsl(45 100% 70% / 0.2)", borderColor: "hsl(45 100% 60%)" }}
+              >
+                <span className="font-display text-2xl font-bold" style={{ color: "hsl(45 100% 60%)" }}>
+                  SUPERLIKE ⭐
+                </span>
               </motion.div>
             )}
           </AnimatePresence>
@@ -233,6 +284,11 @@ const SwipeCard = ({ profile, onSwipeLeft, onSwipeRight, onNudge, isTop }: Swipe
               </p>
             </motion.div>
           )}
+
+          {/* Swipe hint for new users */}
+          <p className="text-[9px] text-muted-foreground/40 text-center font-body mt-1">
+            ← Swipe left to pass · Swipe right to vibe → · Swipe up to superlike ⭐
+          </p>
         </div>
       </div>
     </motion.div>
@@ -243,24 +299,42 @@ const SwipeCard = ({ profile, onSwipeLeft, onSwipeRight, onNudge, isTop }: Swipe
 export const SwipeActions = ({
   onLeft,
   onRight,
+  onSuperlike,
   panicMode = false,
 }: {
   onLeft: () => void;
   onRight: () => void;
+  onSuperlike?: () => void;
   panicMode?: boolean;
 }) => (
-  <div className="flex items-center justify-center gap-6 mt-4">
+  <div className="flex items-center justify-center gap-4 sm:gap-6 mt-4">
     <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={onLeft}
       className="w-14 h-14 sm:w-16 sm:h-16 rounded-full glass flex items-center justify-center border border-muted-foreground/20 transition-colors hover:border-muted-foreground/40"
       aria-label="Pass"
     >
       <X className="w-6 h-6 sm:w-7 sm:h-7 text-muted-foreground" />
     </motion.button>
+
+    {/* Superlike button */}
+    {onSuperlike && (
+      <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={onSuperlike}
+        className="w-12 h-12 sm:w-14 sm:h-14 rounded-full flex items-center justify-center border-2 transition-all"
+        style={{
+          borderColor: "hsl(45 100% 60%)",
+          background: "hsl(45 100% 60% / 0.1)",
+          boxShadow: "0 0 20px hsl(45 100% 60% / 0.2)",
+        }}
+        aria-label="Superlike"
+      >
+        <Star className="w-5 h-5 sm:w-6 sm:h-6" style={{ color: "hsl(45 100% 60%)" }} fill="currentColor" />
+      </motion.button>
+    )}
+
     <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={onRight}
-      className={`w-18 h-18 sm:w-20 sm:h-20 rounded-full flex items-center justify-center transition-all ${panicMode ? "animate-pulse" : ""}`}
+      className={`rounded-full flex items-center justify-center transition-all ${panicMode ? "animate-pulse" : ""}`}
       style={{
-        width: panicMode ? 80 : 72,
-        height: panicMode ? 80 : 72,
+        width: panicMode ? 72 : 64,
+        height: panicMode ? 72 : 64,
         background: panicMode
           ? "linear-gradient(135deg, hsl(0 80% 55%), hsl(var(--blossom)))"
           : "linear-gradient(135deg, hsl(var(--blossom)), hsl(var(--glow)))",
