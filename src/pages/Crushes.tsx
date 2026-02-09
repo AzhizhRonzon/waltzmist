@@ -98,7 +98,7 @@ const CrushesPage = () => {
                 <Eye className="w-8 h-8 text-blossom/30 mx-auto mb-2" />
               </motion.div>
               <p className="text-foreground font-body text-sm mb-1">You haven't sent any anonymous crushes yet.</p>
-              <p className="text-muted-foreground font-body text-xs">Go on, be brave! 💕</p>
+              <p className="text-muted-foreground font-body text-xs">Go on, be brave!</p>
               <button onClick={() => setShowSendModal(true)} className="btn-waltz mt-4 text-sm">
                 Send Your First Crush
               </button>
