@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { AnimatePresence } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import SwipeCard, { SwipeActions } from "../components/SwipeCard";
 import MatchOverlay from "../components/MatchOverlay";
 import NudgeModal from "../components/NudgeModal";
@@ -8,6 +8,7 @@ import CountdownTimer from "../components/CountdownTimer";
 import BottomNav from "../components/BottomNav";
 import WhoLikedMe from "../components/WhoLikedMe";
 import SkeletonCard from "../components/Skeletons";
+import { ConfettiBurst, LoveBurst } from "../components/EasterEggs";
 import { Sparkles, Settings } from "lucide-react";
 import { useWaltzStore } from "../context/WaltzStore";
 import { useNavigate } from "react-router-dom";
@@ -22,6 +23,8 @@ const DiscoverPage = () => {
   const [nudgeTarget, setNudgeTarget] = useState<{ id: string; name: string } | null>(null);
   const [swiping, setSwiping] = useState(false);
   const [showEditProfile, setShowEditProfile] = useState(false);
+  const [showConfetti, setShowConfetti] = useState(false);
+  const [loveBurst, setLoveBurst] = useState<{ x: number; y: number } | null>(null);
 
   useEffect(() => { fetchSecretAdmirers(); }, []);
 
@@ -47,32 +50,42 @@ const DiscoverPage = () => {
       const matched = await swipeRight(current.id);
       if (matched) {
         playMatchSound();
+        setShowConfetti(true);
+        setTimeout(() => setShowConfetti(false), 2000);
         setMatchedProfile({ id: current.id, name: current.name });
       }
     }
     setSwiping(false);
   };
 
+  // Double-tap like easter egg
+  const handleDoubleTap = (e: React.MouseEvent) => {
+    setLoveBurst({ x: e.clientX, y: e.clientY });
+    setTimeout(() => setLoveBurst(null), 800);
+  };
+
   return (
     <div className="min-h-screen breathing-bg flex flex-col relative pb-20">
-      <FallingPetals count={8} />
+      <FallingPetals count={6} />
+      <ConfettiBurst active={showConfetti} />
+      {loveBurst && <LoveBurst x={loveBurst.x} y={loveBurst.y} />}
 
-      <header className="relative z-20 px-5 pt-5 pb-3 flex items-center justify-between">
+      <header className="relative z-20 px-4 sm:px-5 pt-4 sm:pt-5 pb-2 sm:pb-3 flex items-center justify-between">
         <div>
-          <h1 className="font-display text-2xl font-bold blossom-text">WALTZ</h1>
-          <p className="text-[10px] text-muted-foreground font-body uppercase tracking-widest mt-0.5">
+          <h1 className="font-display text-xl sm:text-2xl font-bold blossom-text">WALTZ</h1>
+          <p className="text-[9px] sm:text-[10px] text-muted-foreground font-body uppercase tracking-widest mt-0.5">
             {isPanicMode ? "⚡ PANIC MODE ⚡" : "Find your partner"}
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           {/* Swipe counter */}
-          <div className="glass rounded-full px-2.5 py-1 flex items-center gap-1">
+          <div className="glass rounded-full px-2 sm:px-2.5 py-1 flex items-center gap-1">
             <span className={`text-[11px] font-body font-semibold ${swipesRemaining <= 5 ? "text-destructive" : "text-blossom"}`}>
               {swipesRemaining}
             </span>
             <span className="text-[9px] text-muted-foreground font-body">left</span>
           </div>
-          <button onClick={() => setShowEditProfile(true)} className="p-2 rounded-full hover:bg-secondary/50 transition-colors">
+          <button onClick={() => setShowEditProfile(true)} className="p-2 rounded-full hover:bg-secondary/50 transition-colors" aria-label="Settings">
             <Settings className="w-4 h-4 text-muted-foreground" />
           </button>
           <CountdownTimer />
@@ -80,25 +93,33 @@ const DiscoverPage = () => {
       </header>
 
       {/* Who liked me teaser */}
-      <div className="relative z-10 px-5">
+      <div className="relative z-10 px-4 sm:px-5">
         <WhoLikedMe count={secretAdmirerCount} hints={secretAdmirerHints} />
       </div>
 
-      <div className="flex-1 relative z-10 px-5 pb-2">
-        <div className="relative w-full h-full max-w-sm mx-auto" style={{ minHeight: "60vh" }}>
+      <div className="flex-1 relative z-10 px-4 sm:px-5 pb-2" onDoubleClick={handleDoubleTap}>
+        <div className="relative w-full h-full max-w-sm mx-auto" style={{ minHeight: "55vh" }}>
           {dataLoading ? (
             <SkeletonCard />
           ) : swipesRemaining <= 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-center">
-              <div className="text-5xl mb-4">⏰</div>
+              <motion.div animate={{ scale: [1, 1.1, 1] }} transition={{ duration: 2, repeat: Infinity }}>
+                <div className="text-5xl mb-4">⏰</div>
+              </motion.div>
               <h2 className="font-display text-2xl text-foreground mb-2">Daily Limit Reached</h2>
               <p className="text-muted-foreground font-body text-sm">You've used all your swipes today.<br />Come back tomorrow for more! 🌸</p>
+              <p className="text-[10px] text-muted-foreground/50 font-body mt-3">
+                Pro tip: Quality over quantity. Every swipe counts.
+              </p>
             </div>
           ) : discoverQueue.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-center">
               <Sparkles className="w-12 h-12 text-blossom/40 mb-4" />
               <h2 className="font-display text-2xl text-foreground mb-2">No More Cards</h2>
               <p className="text-muted-foreground font-body text-sm">You've seen everyone.<br />Check back later for new faces 🌸</p>
+              <button onClick={() => navigate("/crushes")} className="btn-ghost-waltz mt-6 text-sm">
+                Send a Secret Crush Instead 💌
+              </button>
             </div>
           ) : (
             <AnimatePresence>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Heart, X, Sparkles, Zap, ChevronLeft, ChevronRight } from "lucide-react";
 import type { ProfileData } from "../context/WaltzStore";
@@ -14,6 +14,8 @@ interface SwipeCardProps {
 const SwipeCard = ({ profile, onSwipeLeft, onSwipeRight, onNudge, isTop }: SwipeCardProps) => {
   const [dragX, setDragX] = useState(0);
   const [photoIndex, setPhotoIndex] = useState(0);
+  const [expanded, setExpanded] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
   const hasMultiplePhotos = profile.photos.length > 1;
 
   const getSwipeDirection = () => {
@@ -22,12 +24,12 @@ const SwipeCard = ({ profile, onSwipeLeft, onSwipeRight, onNudge, isTop }: Swipe
     return null;
   };
 
-  const prevPhoto = (e: React.MouseEvent) => {
+  const prevPhoto = (e: React.MouseEvent | React.TouchEvent) => {
     e.stopPropagation();
     setPhotoIndex((i) => (i === 0 ? profile.photos.length - 1 : i - 1));
   };
 
-  const nextPhoto = (e: React.MouseEvent) => {
+  const nextPhoto = (e: React.MouseEvent | React.TouchEvent) => {
     e.stopPropagation();
     setPhotoIndex((i) => (i === profile.photos.length - 1 ? 0 : i + 1));
   };
@@ -41,11 +43,8 @@ const SwipeCard = ({ profile, onSwipeLeft, onSwipeRight, onNudge, isTop }: Swipe
       dragElastic={0.8}
       onDrag={(_, info) => setDragX(info.offset.x)}
       onDragEnd={(_, info) => {
-        if (info.offset.x > 120) {
-          onSwipeRight();
-        } else if (info.offset.x < -120) {
-          onSwipeLeft();
-        }
+        if (info.offset.x > 120) onSwipeRight();
+        else if (info.offset.x < -120) onSwipeLeft();
         setDragX(0);
       }}
       animate={isTop ? { rotate: dragX * 0.05 } : { scale: 0.95, y: 10 }}
@@ -57,8 +56,11 @@ const SwipeCard = ({ profile, onSwipeLeft, onSwipeRight, onNudge, isTop }: Swipe
       transition={{ type: "spring", stiffness: 300, damping: 25 }}
     >
       <div className="glass-strong rounded-3xl overflow-hidden h-full flex flex-col blossom-glow">
-        {/* Photo area with carousel */}
-        <div className="relative h-[55%] overflow-hidden">
+        {/* Photo area with responsive carousel */}
+        <div
+          className="relative overflow-hidden transition-all duration-300"
+          style={{ height: expanded ? "40%" : "55%" }}
+        >
           <AnimatePresence mode="wait">
             <motion.img
               key={photoIndex}
@@ -69,18 +71,20 @@ const SwipeCard = ({ profile, onSwipeLeft, onSwipeRight, onNudge, isTop }: Swipe
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
+              loading="lazy"
+              draggable={false}
             />
           </AnimatePresence>
           <div className="absolute inset-0 bg-gradient-to-t from-card via-transparent to-transparent" />
 
-          {/* Photo carousel controls */}
+          {/* Photo carousel dots + controls */}
           {hasMultiplePhotos && (
             <>
-              {/* Photo indicator dots */}
               <div className="absolute top-3 left-0 right-0 flex justify-center gap-1.5 z-10">
                 {profile.photos.map((_, i) => (
-                  <div
+                  <button
                     key={i}
+                    onClick={(e) => { e.stopPropagation(); setPhotoIndex(i); }}
                     className="h-1 rounded-full transition-all duration-300"
                     style={{
                       width: i === photoIndex ? 20 : 8,
@@ -93,14 +97,27 @@ const SwipeCard = ({ profile, onSwipeLeft, onSwipeRight, onNudge, isTop }: Swipe
               </div>
 
               {/* Tap zones for prev/next */}
-              <button
-                onClick={prevPhoto}
-                className="absolute left-0 top-0 bottom-0 w-1/3 z-10"
-              />
-              <button
-                onClick={nextPhoto}
-                className="absolute right-0 top-0 bottom-0 w-1/3 z-10"
-              />
+              <button onClick={prevPhoto} className="absolute left-0 top-0 bottom-0 w-1/3 z-10" aria-label="Previous photo" />
+              <button onClick={nextPhoto} className="absolute right-0 top-0 bottom-0 w-1/3 z-10" aria-label="Next photo" />
+
+              {/* Arrow indicators */}
+              <div className="absolute bottom-14 left-2 z-10">
+                <button onClick={prevPhoto} className="glass rounded-full p-1 opacity-60 hover:opacity-100 transition-opacity">
+                  <ChevronLeft className="w-4 h-4 text-foreground" />
+                </button>
+              </div>
+              <div className="absolute bottom-14 right-2 z-10">
+                <button onClick={nextPhoto} className="glass rounded-full p-1 opacity-60 hover:opacity-100 transition-opacity">
+                  <ChevronRight className="w-4 h-4 text-foreground" />
+                </button>
+              </div>
+
+              {/* Photo counter */}
+              <div className="absolute bottom-14 left-1/2 -translate-x-1/2 z-10 glass rounded-full px-2 py-0.5">
+                <span className="text-[10px] font-body text-foreground/80">
+                  {photoIndex + 1} / {profile.photos.length}
+                </span>
+              </div>
             </>
           )}
 
@@ -147,15 +164,20 @@ const SwipeCard = ({ profile, onSwipeLeft, onSwipeRight, onNudge, isTop }: Swipe
 
           {/* Name overlay */}
           <div className="absolute bottom-4 left-5 right-5 z-10">
-            <h2 className="text-3xl font-display font-bold text-foreground">{profile.name}</h2>
-            <p className="text-sm text-muted-foreground font-body mt-0.5">
+            <h2 className="text-2xl sm:text-3xl font-display font-bold text-foreground">{profile.name}</h2>
+            <p className="text-xs sm:text-sm text-muted-foreground font-body mt-0.5">
               {profile.batch}{profile.section ? ` · Section ${profile.section}` : ""}
             </p>
           </div>
         </div>
 
-        {/* Info area */}
-        <div className="flex-1 p-5 flex flex-col gap-3 overflow-y-auto">
+        {/* Scrollable info area */}
+        <div
+          ref={scrollRef}
+          className="flex-1 p-4 sm:p-5 flex flex-col gap-2.5 overflow-y-auto overscroll-contain scrollbar-hide"
+          onTouchStart={() => setExpanded(true)}
+          onTouchEnd={() => setTimeout(() => setExpanded(false), 2000)}
+        >
           <div className="glass rounded-2xl p-3">
             <p className="text-[11px] text-muted-foreground uppercase tracking-widest mb-1 font-body">Waltz-O-Meter</p>
             <p className="text-sm font-body text-blossom-soft">
@@ -164,37 +186,52 @@ const SwipeCard = ({ profile, onSwipeLeft, onSwipeRight, onNudge, isTop }: Swipe
           </div>
 
           <div className="flex items-center justify-between glass rounded-2xl p-3">
-            <span className="text-xs text-muted-foreground font-body">Silent Slurper</span>
-            <div className="flex-1 mx-3 h-1.5 rounded-full bg-secondary overflow-hidden">
-              <div
+            <span className="text-[10px] sm:text-xs text-muted-foreground font-body">Silent Slurper</span>
+            <div className="flex-1 mx-2 sm:mx-3 h-1.5 rounded-full bg-secondary overflow-hidden">
+              <motion.div
                 className="h-full rounded-full"
+                initial={{ width: 0 }}
+                animate={{ width: `${profile.maggiMetric}%` }}
+                transition={{ duration: 0.8, ease: "easeOut" }}
                 style={{
-                  width: `${profile.maggiMetric}%`,
                   background: "linear-gradient(90deg, hsl(var(--blossom)), hsl(var(--glow)))"
                 }}
               />
             </div>
-            <span className="text-xs text-muted-foreground font-body">Philosophy Spouter</span>
+            <span className="text-[10px] sm:text-xs text-muted-foreground font-body">Philosophy Spouter</span>
           </div>
 
           <div className="grid grid-cols-2 gap-2">
             <div className="glass rounded-2xl p-3">
               <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-body">Fav Trip</p>
-              <p className="text-sm text-foreground font-body mt-0.5">{profile.favoriteTrip || "—"}</p>
+              <p className="text-xs sm:text-sm text-foreground font-body mt-0.5 truncate">{profile.favoriteTrip || "—"}</p>
             </div>
             <div className="glass rounded-2xl p-3">
               <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-body">Party Spot</p>
-              <p className="text-sm text-foreground font-body mt-0.5">{profile.partySpot || "—"}</p>
+              <p className="text-xs sm:text-sm text-foreground font-body mt-0.5 truncate">{profile.partySpot || "—"}</p>
             </div>
           </div>
 
           {profile.redFlag && (
             <div className="glass rounded-2xl p-3 border border-maroon/20">
               <p className="text-[10px] text-maroon uppercase tracking-widest font-body">🚩 Red Flag</p>
-              <p className="text-sm text-foreground font-body mt-0.5 italic">
+              <p className="text-xs sm:text-sm text-foreground font-body mt-0.5 italic">
                 "I honestly believe that {profile.redFlag}"
               </p>
             </div>
+          )}
+
+          {/* Compatibility detail easter egg */}
+          {profile.compatibility >= 85 && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="glass rounded-2xl p-3 border border-blossom/20 text-center"
+            >
+              <p className="text-xs text-blossom font-body">
+                ✨ The stars align — this one's special ✨
+              </p>
+            </motion.div>
           )}
         </div>
       </div>
@@ -214,21 +251,27 @@ export const SwipeActions = ({
 }) => (
   <div className="flex items-center justify-center gap-6 mt-4">
     <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={onLeft}
-      className="w-16 h-16 rounded-full glass flex items-center justify-center border border-muted-foreground/20 transition-colors hover:border-muted-foreground/40">
-      <X className="w-7 h-7 text-muted-foreground" />
+      className="w-14 h-14 sm:w-16 sm:h-16 rounded-full glass flex items-center justify-center border border-muted-foreground/20 transition-colors hover:border-muted-foreground/40"
+      aria-label="Pass"
+    >
+      <X className="w-6 h-6 sm:w-7 sm:h-7 text-muted-foreground" />
     </motion.button>
     <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={onRight}
-      className={`w-20 h-20 rounded-full flex items-center justify-center transition-all ${panicMode ? "animate-pulse" : ""}`}
+      className={`w-18 h-18 sm:w-20 sm:h-20 rounded-full flex items-center justify-center transition-all ${panicMode ? "animate-pulse" : ""}`}
       style={{
+        width: panicMode ? 80 : 72,
+        height: panicMode ? 80 : 72,
         background: panicMode
           ? "linear-gradient(135deg, hsl(0 80% 55%), hsl(var(--blossom)))"
           : "linear-gradient(135deg, hsl(var(--blossom)), hsl(var(--glow)))",
         boxShadow: panicMode
           ? "0 0 30px hsl(0 80% 55% / 0.4)"
           : "0 0 40px hsl(var(--blossom) / 0.15)",
-      }}>
+      }}
+      aria-label="Like"
+    >
       <div className="flex flex-col items-center">
-        <Heart className="w-8 h-8 text-primary-foreground" fill="currentColor" />
+        <Heart className="w-7 h-7 sm:w-8 sm:h-8 text-primary-foreground" fill="currentColor" />
         {panicMode && (
           <span className="text-[8px] font-bold text-primary-foreground mt-0.5 uppercase tracking-wider">PANIC</span>
         )}
