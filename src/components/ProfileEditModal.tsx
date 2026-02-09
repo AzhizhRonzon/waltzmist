@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { X, Save, AlertTriangle } from "lucide-react";
+import { X, Save, AlertTriangle, LogOut, Info } from "lucide-react";
 import PhotoUpload from "./PhotoUpload";
 import { useWaltzStore } from "../context/WaltzStore";
+import { useNavigate } from "react-router-dom";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface ProfileEditModalProps {
   onClose: () => void;
@@ -12,7 +14,8 @@ const PROGRAMS = ["PGP24", "PGP25", "PGPEx", "IPM", "PhD"];
 const SECTIONS = ["1", "2", "3", "4", "5", "6"];
 
 const ProfileEditModal = ({ onClose }: ProfileEditModalProps) => {
-  const { session, myProfile, updateProfile } = useWaltzStore();
+  const navigate = useNavigate();
+  const { session, myProfile, updateProfile, signOut } = useWaltzStore();
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
     name: myProfile?.name || "",
@@ -40,6 +43,12 @@ const ProfileEditModal = ({ onClose }: ProfileEditModalProps) => {
     });
     setSaving(false);
     onClose();
+  };
+
+  const handleSignOut = async () => {
+    await signOut();
+    onClose();
+    navigate("/");
   };
 
   return (
@@ -104,7 +113,17 @@ const ProfileEditModal = ({ onClose }: ProfileEditModalProps) => {
 
           {/* Section */}
           <div>
-            <label className="text-sm text-muted-foreground font-body block mb-2">Section (optional)</label>
+            <label className="text-sm text-muted-foreground font-body flex items-center gap-1.5 mb-2">
+              Section (optional)
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Info className="w-3.5 h-3.5 text-muted-foreground/60 cursor-help" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="text-xs max-w-[200px]">Sections are only for PGP25. If you're from another program, feel free to skip this.</p>
+                </TooltipContent>
+              </Tooltip>
+            </label>
             <div className="flex flex-wrap gap-2">
               {SECTIONS.map((s) => (
                 <button key={s} onClick={() => setForm({ ...form, section: form.section === s ? "" : s })} className={`pill ${form.section === s ? "pill-active" : ""}`}>
@@ -169,6 +188,15 @@ const ProfileEditModal = ({ onClose }: ProfileEditModalProps) => {
             <Save className="w-4 h-4" />
             {saving ? "Saving..." : "Save Changes"}
           </motion.button>
+
+          {/* Sign Out */}
+          <button
+            onClick={handleSignOut}
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-full text-sm font-body text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+          >
+            <LogOut className="w-4 h-4" />
+            Sign Out
+          </button>
         </div>
       </motion.div>
     </motion.div>
