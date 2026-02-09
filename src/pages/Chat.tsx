@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Send, ShieldAlert, Lightbulb } from "lucide-react";
+import { ArrowLeft, Send, Lightbulb, MoreVertical, Flag, Ban, UserX } from "lucide-react";
 import ChatBubble from "../components/ChatBubble";
 import CountdownTimer from "../components/CountdownTimer";
 import FallingPetals from "../components/FallingPetals";
@@ -9,6 +9,7 @@ import ReportModal from "../components/ReportModal";
 import VoiceRecorder from "../components/VoiceRecorder";
 import { SkeletonMessage } from "../components/Skeletons";
 import { useWaltzStore, ChatMessage } from "../context/WaltzStore";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useRealtimeChat } from "../hooks/useRealtimeChat";
 import { getIcebreakers } from "../lib/icebreakers";
 import { playMessageSentSound } from "../lib/sounds";
@@ -16,7 +17,7 @@ import { playMessageSentSound } from "../lib/sounds";
 const ChatPage = () => {
   const { matchId } = useParams<{ matchId: string }>();
   const navigate = useNavigate();
-  const { session, myProfile, matches, conversations, sendMessage, loadConversation, markMessagesRead, reportUser, dataLoading } = useWaltzStore();
+  const { session, myProfile, matches, conversations, sendMessage, loadConversation, markMessagesRead, reportUser, blockUser, unmatchUser, dataLoading } = useWaltzStore();
   const [newMessage, setNewMessage] = useState("");
   const [showReport, setShowReport] = useState(false);
   const [showIcebreakers, setShowIcebreakers] = useState(false);
@@ -108,9 +109,30 @@ const ChatPage = () => {
             <h3 className="font-display text-lg text-foreground leading-tight">{match?.profile.name}</h3>
             <p className="text-[11px] text-muted-foreground font-body">{match?.profile.batch}</p>
           </div>
-          <button onClick={() => setShowReport(true)} className="p-1.5 rounded-full hover:bg-secondary/50 transition-colors">
-            <ShieldAlert className="w-4 h-4 text-muted-foreground" />
-          </button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="p-1.5 rounded-full hover:bg-secondary/50 transition-colors">
+                <MoreVertical className="w-4 h-4 text-muted-foreground" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="glass-strong border-border/30">
+              <DropdownMenuItem onClick={() => setShowReport(true)} className="text-foreground font-body text-sm">
+                <Flag className="w-4 h-4 mr-2" />Report
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={async () => { if (match) { await blockUser(match.id); navigate("/whispers"); } }}
+                className="text-maroon font-body text-sm"
+              >
+                <Ban className="w-4 h-4 mr-2" />Block
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={async () => { if (match) { await unmatchUser(match.matchUuid); navigate("/whispers"); } }}
+                className="text-muted-foreground font-body text-sm"
+              >
+                <UserX className="w-4 h-4 mr-2" />Unmatch
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </header>
 

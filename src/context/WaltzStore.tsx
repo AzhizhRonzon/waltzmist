@@ -170,6 +170,9 @@ interface WaltzStoreContextType {
   guessCrush: (crushId: string, guessId: string) => Promise<boolean>;
 
   reportUser: (userId: string, reason: string) => Promise<void>;
+  blockUser: (userId: string) => Promise<void>;
+  unmatchUser: (matchUuid: string) => Promise<void>;
+  blockedIds: string[];
   allProfiles: ProfileData[];
 
   campusStats: CampusStats | null;
@@ -201,7 +204,7 @@ export const useWaltzStore = () => {
 export const WaltzStoreProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
-  const [dataLoading, setDataLoading] = useState(false);
+  const [dataLoading, setDataLoading] = useState(true);
   const [myProfileRow, setMyProfileRow] = useState<Tables<'profiles'> | null>(null);
   const [myProfile, setMyProfile] = useState<ProfileData | null>(null);
   const [allProfileRows, setAllProfileRows] = useState<Tables<'profiles'>[]>([]);
@@ -215,6 +218,7 @@ export const WaltzStoreProvider = ({ children }: { children: ReactNode }) => {
   const [campusStats, setCampusStats] = useState<CampusStats | null>(null);
   const [secretAdmirerCount, setSecretAdmirerCount] = useState(0);
   const [secretAdmirerHints, setSecretAdmirerHints] = useState<SecretAdmirerHint[]>([]);
+  const [blockedIds, setBlockedIds] = useState<string[]>([]);
 
   const matchesRef = useRef<MatchData[]>([]);
   useEffect(() => { matchesRef.current = matches; }, [matches]);
@@ -224,7 +228,7 @@ export const WaltzStoreProvider = ({ children }: { children: ReactNode }) => {
   const canNudgeToday = !nudgesSent.some(n => n.sentAt.toDateString() === new Date().toDateString());
 
   const allProfiles = allProfileRows
-    .filter(p => p.id !== session?.user?.id && !p.is_shadow_banned)
+    .filter(p => p.id !== session?.user?.id && !p.is_shadow_banned && !blockedIds.includes(p.id))
     .map(p => dbProfileToApp(p));
 
   // ── Auth listener ──
@@ -235,6 +239,7 @@ export const WaltzStoreProvider = ({ children }: { children: ReactNode }) => {
     supabase.auth.getSession().then(({ data: { session: sess } }) => {
       setSession(sess);
       setLoading(false);
+      if (!sess) setDataLoading(false);
     });
     return () => subscription.unsubscribe();
   }, []);
@@ -244,7 +249,31 @@ export const WaltzStoreProvider = ({ children }: { children: ReactNode }) => {
       fetchAllData(session.user.id);
     } else {
       resetData();
+      setDataLoading(false);
     }
+  }, [session?.user?.id]);
+
+  // ── Realtime notifications ──
+  useEffect(() => {
+    if (!session?.user) return;
+    const userId = session.user.id;
+    const channel = supabase
+      .channel('global-notifications')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'matches' }, (payload) => {
+        const m = payload.new as any;
+        if (m.user1_id === userId || m.user2_id === userId) {
+          toast({ title: "🌸 New Match!", description: "Someone vibed with you!" });
+          setTimeout(() => fetchAllData(userId), 0);
+        }
+      })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (payload) => {
+        const msg = payload.new as any;
+        if (msg.sender_id !== userId) {
+          toast({ title: "💌 New Message", description: "Someone sent you a whisper!" });
+        }
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
   }, [session?.user?.id]);
 
   const resetData = () => {
@@ -261,12 +290,13 @@ export const WaltzStoreProvider = ({ children }: { children: ReactNode }) => {
     setCampusStats(null);
     setSecretAdmirerCount(0);
     setSecretAdmirerHints([]);
+    setBlockedIds([]);
   };
 
   const fetchAllData = async (userId: string) => {
     setDataLoading(true);
     try {
-      const [profileRes, allProfilesRes, swipesRes, matchesRes, nudgeSentRes, nudgeRecvRes, crushSentRes, crushRecvRes] = await Promise.all([
+      const [profileRes, allProfilesRes, swipesRes, matchesRes, nudgeSentRes, nudgeRecvRes, crushSentRes, crushRecvRes, blocksRes] = await Promise.all([
         supabase.from("profiles").select("*").eq("id", userId).maybeSingle(),
         supabase.from("profiles").select("*").eq("is_shadow_banned", false),
         supabase.from("swipes").select("swiped_id").eq("swiper_id", userId),
@@ -275,6 +305,7 @@ export const WaltzStoreProvider = ({ children }: { children: ReactNode }) => {
         supabase.from("nudges").select("*").eq("receiver_id", userId),
         supabase.from("crushes").select("*").eq("sender_id", userId),
         supabase.from("crushes").select("*").eq("receiver_id", userId),
+        (supabase as any).from("blocks").select("blocked_id").eq("blocker_id", userId),
       ]);
 
       const profileRow = profileRes.data;
@@ -284,35 +315,49 @@ export const WaltzStoreProvider = ({ children }: { children: ReactNode }) => {
       const allRows = allProfilesRes.data || [];
       setAllProfileRows(allRows);
 
+      const blockedIdSet = new Set<string>((blocksRes.data || []).map((b: any) => b.blocked_id));
+      setBlockedIds(Array.from(blockedIdSet));
+
       const swipedIds = new Set((swipesRes.data || []).map(s => s.swiped_id));
       const queue = allRows
         .filter(p => p.id !== userId && !swipedIds.has(p.id))
+        .filter(p => profileRow ? p.sex !== profileRow.sex : true)
+        .filter(p => !blockedIdSet.has(p.id))
         .map(p => dbProfileToApp(p, profileRow ? computeCompat(profileRow, p) : 50));
       setDiscoverQueue(queue);
 
       const matchRows = matchesRes.data || [];
       if (matchRows.length > 0) {
-        const otherIds = matchRows.map(m => m.user1_id === userId ? m.user2_id : m.user1_id);
-        const { data: matchProfiles } = await supabase.from("profiles").select("*").in("id", otherIds);
-        const { data: allMsgs } = await supabase.from("messages").select("*").in("match_id", matchRows.map(m => m.id)).order("created_at", { ascending: false });
-
-        const md: MatchData[] = matchRows.map(m => {
+        const filteredMatchRows = matchRows.filter(m => {
           const otherId = m.user1_id === userId ? m.user2_id : m.user1_id;
-          const prof = (matchProfiles || []).find(p => p.id === otherId);
-          const msgs = (allMsgs || []).filter(msg => msg.match_id === m.id);
-          const latest = msgs[0];
-          const unread = msgs.filter(msg => msg.sender_id !== userId && msg.status === "sent").length;
-          return {
-            id: otherId,
-            matchUuid: m.id,
-            profile: prof ? dbProfileToApp(prof, profileRow ? computeCompat(profileRow, prof) : 50) : dbProfileToApp(profileRow!, 0),
-            matchedAt: new Date(m.matched_at),
-            lastMessage: latest?.text || "",
-            lastMessageTime: latest ? timeAgo(latest.created_at) : "",
-            unread,
-          };
+          return !blockedIdSet.has(otherId);
         });
-        setMatches(md);
+        const otherIds = filteredMatchRows.map(m => m.user1_id === userId ? m.user2_id : m.user1_id);
+        
+        if (otherIds.length > 0) {
+          const { data: matchProfiles } = await supabase.from("profiles").select("*").in("id", otherIds);
+          const { data: allMsgs } = await supabase.from("messages").select("*").in("match_id", filteredMatchRows.map(m => m.id)).order("created_at", { ascending: false });
+
+          const md: MatchData[] = filteredMatchRows.map(m => {
+            const otherId = m.user1_id === userId ? m.user2_id : m.user1_id;
+            const prof = (matchProfiles || []).find(p => p.id === otherId);
+            const msgs = (allMsgs || []).filter(msg => msg.match_id === m.id);
+            const latest = msgs[0];
+            const unread = msgs.filter(msg => msg.sender_id !== userId && msg.status === "sent").length;
+            return {
+              id: otherId,
+              matchUuid: m.id,
+              profile: prof ? dbProfileToApp(prof, profileRow ? computeCompat(profileRow, prof) : 50) : dbProfileToApp(profileRow!, 0),
+              matchedAt: new Date(m.matched_at),
+              lastMessage: latest?.text || "",
+              lastMessageTime: latest ? timeAgo(latest.created_at) : "",
+              unread,
+            };
+          });
+          setMatches(md);
+        } else {
+          setMatches([]);
+        }
       } else {
         setMatches([]);
       }
@@ -343,7 +388,7 @@ export const WaltzStoreProvider = ({ children }: { children: ReactNode }) => {
 
   const completeProfile = async (data: Record<string, any>) => {
     if (!session?.user) return;
-    const { error } = await supabase.from("profiles").insert({
+    const { error } = await supabase.from("profiles").upsert({
       id: session.user.id,
       email: session.user.email!,
       name: data.name,
@@ -356,7 +401,7 @@ export const WaltzStoreProvider = ({ children }: { children: ReactNode }) => {
       party_spot: data.partySpot || "",
       red_flag: data.redFlag || null,
       photo_urls: data.photoUrls && data.photoUrls.length > 0 ? data.photoUrls : null,
-    });
+    }, { onConflict: 'id' });
     if (error) {
       toast({ title: "Profile creation failed", description: error.message, variant: "destructive" });
       return;
@@ -491,6 +536,28 @@ export const WaltzStoreProvider = ({ children }: { children: ReactNode }) => {
     toast({ title: "Report submitted", description: "We'll review it shortly." });
   };
 
+  // ── Block / Unmatch ──
+  const blockUser = async (userId: string) => {
+    if (!session?.user) return;
+    const { error } = await (supabase as any).from("blocks").insert({
+      blocker_id: session.user.id,
+      blocked_id: userId,
+    });
+    if (error) { toast({ title: "Block failed", description: error.message, variant: "destructive" }); return; }
+    setBlockedIds(prev => [...prev, userId]);
+    setMatches(prev => prev.filter(m => m.id !== userId));
+    setDiscoverQueue(prev => prev.filter(p => p.id !== userId));
+    toast({ title: "User blocked 🚫", description: "They won't appear in your feed anymore." });
+  };
+
+  const unmatchUser = async (matchUuid: string) => {
+    if (!session?.user) return;
+    const { error } = await supabase.from("matches").delete().eq("id", matchUuid);
+    if (error) { toast({ title: "Unmatch failed", description: error.message, variant: "destructive" }); return; }
+    setMatches(prev => prev.filter(m => m.matchUuid !== matchUuid));
+    toast({ title: "Unmatched", description: "This match has been removed." });
+  };
+
   // ── Stats ──
   const fetchCampusStats = async () => {
     const { data, error } = await supabase.rpc("get_campus_stats");
@@ -538,7 +605,8 @@ export const WaltzStoreProvider = ({ children }: { children: ReactNode }) => {
         matches, conversations, sendMessage, loadConversation, markMessagesRead,
         nudgesSent, nudgesReceived, canNudgeToday, sendNudge, markNudgeSeen,
         crushesSent, crushesReceived, sendCrush, guessCrush,
-        reportUser, allProfiles,
+        reportUser, blockUser, unmatchUser, blockedIds,
+        allProfiles,
         campusStats, secretAdmirerCount, secretAdmirerHints, fetchCampusStats, fetchSecretAdmirers,
         getWrappedStats,
       }}

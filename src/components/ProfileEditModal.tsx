@@ -1,10 +1,8 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { X, Camera, Save, AlertTriangle } from "lucide-react";
+import { X, Save, AlertTriangle } from "lucide-react";
 import PhotoUpload from "./PhotoUpload";
 import { useWaltzStore } from "../context/WaltzStore";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/hooks/use-toast";
 
 interface ProfileEditModalProps {
   onClose: () => void;
@@ -14,7 +12,7 @@ const PROGRAMS = ["PGP24", "PGP25", "PGPEx", "IPM", "PhD"];
 const SECTIONS = ["1", "2", "3", "4", "5", "6"];
 
 const ProfileEditModal = ({ onClose }: ProfileEditModalProps) => {
-  const { session, myProfile } = useWaltzStore();
+  const { session, myProfile, updateProfile } = useWaltzStore();
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
     name: myProfile?.name || "",
@@ -28,32 +26,20 @@ const ProfileEditModal = ({ onClose }: ProfileEditModalProps) => {
   });
 
   const handleSave = async () => {
-    if (!session?.user) return;
+    if (!session?.user || !form.name.trim()) return;
     setSaving(true);
-
-    const { error } = await supabase
-      .from("profiles")
-      .update({
-        name: form.name.trim(),
-        program: form.program,
-        section: form.section || null,
-        maggi_metric: form.maggiMetric,
-        favorite_trip: form.favoriteTrip,
-        party_spot: form.partySpot,
-        red_flag: form.redFlag || null,
-        photo_urls: form.photoUrls.length > 0 ? form.photoUrls : null,
-      })
-      .eq("id", session.user.id);
-
+    await updateProfile({
+      name: form.name.trim(),
+      program: form.program,
+      section: form.section,
+      maggiMetric: form.maggiMetric,
+      favoriteTrip: form.favoriteTrip,
+      partySpot: form.partySpot,
+      redFlag: form.redFlag,
+      photoUrls: form.photoUrls,
+    });
     setSaving(false);
-
-    if (error) {
-      toast({ title: "Failed to save", description: error.message, variant: "destructive" });
-    } else {
-      toast({ title: "Profile updated! 🌸" });
-      // Reload page to refresh data
-      window.location.reload();
-    }
+    onClose();
   };
 
   return (
