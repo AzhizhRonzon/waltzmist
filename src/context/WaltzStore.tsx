@@ -133,6 +133,10 @@ function timeAgo(d: string): string {
   return `${Math.floor(h / 24)}d ago`;
 }
 
+// ─── Constants ──────────────────────────────────────────────────
+const DAILY_SWIPE_LIMIT = 50;
+const CHAT_PAGE_SIZE = 30;
+
 // ─── Context Interface ──────────────────────────────────────────
 interface WaltzStoreContextType {
   session: Session | null;
@@ -151,12 +155,15 @@ interface WaltzStoreContextType {
   discoverQueue: ProfileData[];
   swipeLeft: (profileId: string) => Promise<void>;
   swipeRight: (profileId: string) => Promise<boolean>;
+  swipesRemaining: number;
 
   matches: MatchData[];
   conversations: Record<string, ChatMessage[]>;
   sendMessage: (profileId: string, text: string, audioUrl?: string) => Promise<void>;
   loadConversation: (profileId: string) => Promise<void>;
+  loadMoreMessages: (profileId: string) => Promise<boolean>;
   markMessagesRead: (profileId: string) => Promise<void>;
+  hasMoreMessages: Record<string, boolean>;
 
   nudgesSent: NudgeData[];
   nudgesReceived: NudgeData[];
@@ -219,6 +226,8 @@ export const WaltzStoreProvider = ({ children }: { children: ReactNode }) => {
   const [secretAdmirerCount, setSecretAdmirerCount] = useState(0);
   const [secretAdmirerHints, setSecretAdmirerHints] = useState<SecretAdmirerHint[]>([]);
   const [blockedIds, setBlockedIds] = useState<string[]>([]);
+  const [swipesToday, setSwipesToday] = useState(0);
+  const [hasMoreMessages, setHasMoreMessages] = useState<Record<string, boolean>>({});
 
   const matchesRef = useRef<MatchData[]>([]);
   useEffect(() => { matchesRef.current = matches; }, [matches]);
@@ -226,6 +235,7 @@ export const WaltzStoreProvider = ({ children }: { children: ReactNode }) => {
   const isLoggedIn = !!session?.user;
   const hasProfile = !!myProfile;
   const canNudgeToday = !nudgesSent.some(n => n.sentAt.toDateString() === new Date().toDateString());
+  const swipesRemaining = Math.max(0, DAILY_SWIPE_LIMIT - swipesToday);
 
   const allProfiles = allProfileRows
     .filter(p => p.id !== session?.user?.id && !p.is_shadow_banned && !blockedIds.includes(p.id))
@@ -296,7 +306,10 @@ export const WaltzStoreProvider = ({ children }: { children: ReactNode }) => {
   const fetchAllData = async (userId: string) => {
     setDataLoading(true);
     try {
-      const [profileRes, allProfilesRes, swipesRes, matchesRes, nudgeSentRes, nudgeRecvRes, crushSentRes, crushRecvRes, blocksRes] = await Promise.all([
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+
+      const [profileRes, allProfilesRes, swipesRes, matchesRes, nudgeSentRes, nudgeRecvRes, crushSentRes, crushRecvRes, blocksRes, todaySwipesRes] = await Promise.all([
         supabase.from("profiles").select("*").eq("id", userId).maybeSingle(),
         supabase.from("profiles").select("*").eq("is_shadow_banned", false),
         supabase.from("swipes").select("swiped_id").eq("swiper_id", userId),
@@ -306,6 +319,7 @@ export const WaltzStoreProvider = ({ children }: { children: ReactNode }) => {
         supabase.from("crushes").select("*").eq("sender_id", userId),
         supabase.from("crushes").select("*").eq("receiver_id", userId),
         (supabase as any).from("blocks").select("blocked_id").eq("blocker_id", userId),
+        supabase.from("swipes").select("id", { count: "exact", head: true }).eq("swiper_id", userId).gte("created_at", todayStart.toISOString()),
       ]);
 
       const profileRow = profileRes.data;
@@ -325,6 +339,7 @@ export const WaltzStoreProvider = ({ children }: { children: ReactNode }) => {
         .filter(p => !blockedIdSet.has(p.id))
         .map(p => dbProfileToApp(p, profileRow ? computeCompat(profileRow, p) : 50));
       setDiscoverQueue(queue);
+      setSwipesToday(todaySwipesRes.count || 0);
 
       const matchRows = matchesRes.data || [];
       if (matchRows.length > 0) {
@@ -432,16 +447,26 @@ export const WaltzStoreProvider = ({ children }: { children: ReactNode }) => {
   // ── Swipe ──
   const swipeLeft = async (profileId: string) => {
     if (!session?.user) return;
+    if (swipesRemaining <= 0) {
+      toast({ title: "Daily limit reached 🛑", description: `You've used all ${DAILY_SWIPE_LIMIT} swipes today. Come back tomorrow!`, variant: "destructive" });
+      return;
+    }
     const { error } = await supabase.from("swipes").insert({ swiper_id: session.user.id, swiped_id: profileId, direction: "dislike" });
     if (error) { toast({ title: "Swipe failed", description: error.message, variant: "destructive" }); return; }
     setDiscoverQueue(q => q.filter(p => p.id !== profileId));
+    setSwipesToday(n => n + 1);
   };
 
   const swipeRight = async (profileId: string): Promise<boolean> => {
     if (!session?.user) return false;
+    if (swipesRemaining <= 0) {
+      toast({ title: "Daily limit reached 🛑", description: `You've used all ${DAILY_SWIPE_LIMIT} swipes today. Come back tomorrow!`, variant: "destructive" });
+      return false;
+    }
     const { error } = await supabase.from("swipes").insert({ swiper_id: session.user.id, swiped_id: profileId, direction: "like" });
     if (error) { toast({ title: "Swipe failed", description: error.message, variant: "destructive" }); return false; }
     setDiscoverQueue(q => q.filter(p => p.id !== profileId));
+    setSwipesToday(n => n + 1);
     const { data: match } = await supabase.from("matches").select("*")
       .or(`and(user1_id.eq.${session.user.id},user2_id.eq.${profileId}),and(user1_id.eq.${profileId},user2_id.eq.${session.user.id})`)
       .maybeSingle();
@@ -453,19 +478,58 @@ export const WaltzStoreProvider = ({ children }: { children: ReactNode }) => {
   const loadConversation = useCallback(async (profileId: string) => {
     const match = matchesRef.current.find(m => m.id === profileId);
     if (!match) return;
-    const { data } = await supabase.from("messages").select("*").eq("match_id", match.matchUuid).order("created_at", { ascending: true });
-    setConversations(prev => ({
-      ...prev,
-      [profileId]: (data || []).map(m => ({
-        id: m.id,
-        senderId: m.sender_id,
-        text: m.text,
-        audioUrl: (m as any).audio_url || undefined,
-        timestamp: new Date(m.created_at),
-        status: m.status as "sent" | "read",
-      })),
+    const { data } = await supabase.from("messages").select("*")
+      .eq("match_id", match.matchUuid)
+      .order("created_at", { ascending: false })
+      .limit(CHAT_PAGE_SIZE);
+
+    const messages = (data || []).reverse().map(m => ({
+      id: m.id,
+      senderId: m.sender_id,
+      text: m.text,
+      audioUrl: (m as any).audio_url || undefined,
+      timestamp: new Date(m.created_at),
+      status: m.status as "sent" | "read",
     }));
+
+    setConversations(prev => ({ ...prev, [profileId]: messages }));
+    setHasMoreMessages(prev => ({ ...prev, [profileId]: (data || []).length >= CHAT_PAGE_SIZE }));
   }, []);
+
+  const loadMoreMessages = useCallback(async (profileId: string): Promise<boolean> => {
+    const match = matchesRef.current.find(m => m.id === profileId);
+    if (!match) return false;
+
+    const existing = conversations[profileId] || [];
+    if (existing.length === 0) return false;
+
+    const oldestTimestamp = existing[0].timestamp.toISOString();
+    const { data } = await supabase.from("messages").select("*")
+      .eq("match_id", match.matchUuid)
+      .lt("created_at", oldestTimestamp)
+      .order("created_at", { ascending: false })
+      .limit(CHAT_PAGE_SIZE);
+
+    const olderMessages = (data || []).reverse().map(m => ({
+      id: m.id,
+      senderId: m.sender_id,
+      text: m.text,
+      audioUrl: (m as any).audio_url || undefined,
+      timestamp: new Date(m.created_at),
+      status: m.status as "sent" | "read",
+    }));
+
+    if (olderMessages.length > 0) {
+      setConversations(prev => ({
+        ...prev,
+        [profileId]: [...olderMessages, ...(prev[profileId] || [])],
+      }));
+    }
+
+    const hasMore = (data || []).length >= CHAT_PAGE_SIZE;
+    setHasMoreMessages(prev => ({ ...prev, [profileId]: hasMore }));
+    return hasMore;
+  }, [conversations]);
 
   const sendMessage = async (profileId: string, text: string, audioUrl?: string) => {
     const match = matchesRef.current.find(m => m.id === profileId);
@@ -601,8 +665,8 @@ export const WaltzStoreProvider = ({ children }: { children: ReactNode }) => {
       value={{
         session, isLoggedIn, hasProfile, myProfile, loading, dataLoading,
         signUp, signIn, signOut, completeProfile, updateProfile,
-        discoverQueue, swipeLeft, swipeRight,
-        matches, conversations, sendMessage, loadConversation, markMessagesRead,
+        discoverQueue, swipeLeft, swipeRight, swipesRemaining,
+        matches, conversations, sendMessage, loadConversation, loadMoreMessages, markMessagesRead, hasMoreMessages,
         nudgesSent, nudgesReceived, canNudgeToday, sendNudge, markNudgeSeen,
         crushesSent, crushesReceived, sendCrush, guessCrush,
         reportUser, blockUser, unmatchUser, blockedIds,
