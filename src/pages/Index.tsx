@@ -17,6 +17,7 @@ const TESTIMONIALS = [
   { text: "Found my Waltz partner in 3 swipes. The mess will never feel the same.", emoji: "💕" },
   { text: "My red flag brought all the matches to the yard.", emoji: "🚩" },
   { text: "Turns out we both hated the same prof. Match made in heaven.", emoji: "✨" },
+  { text: "Swiped right because of the Maggi metric. No regrets.", emoji: "🍜" },
 ];
 
 const LandingPage = () => {
@@ -46,7 +47,6 @@ const LandingPage = () => {
     fetchStats();
   }, []);
 
-  // Rotate testimonials
   useEffect(() => {
     const interval = setInterval(() => {
       setTestimonialIndex((i) => (i + 1) % TESTIMONIALS.length);
@@ -54,7 +54,6 @@ const LandingPage = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // Easter egg: tap logo 5 times
   const handleLogoTap = () => {
     const next = tapCount + 1;
     setTapCount(next);
@@ -87,10 +86,10 @@ const LandingPage = () => {
         initial={{ opacity: 0 }}
         animate={{ opacity: entered ? 0 : 1 }}
         transition={{ duration: 0.5 }}
-        className="relative z-10 w-full max-w-lg px-6"
+        className="relative z-10 w-full max-w-lg px-4 sm:px-6"
       >
         {/* Hero Section */}
-        <div className="text-center pt-14 pb-6">
+        <div className="text-center pt-10 sm:pt-14 pb-6">
           <motion.div
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
@@ -102,12 +101,11 @@ const LandingPage = () => {
               className="mb-4"
               onClick={handleLogoTap}
             >
-              <h1 className="font-display text-7xl sm:text-8xl font-bold blossom-text tracking-tight cursor-pointer select-none">
+              <h1 className="font-display text-6xl sm:text-8xl font-bold blossom-text tracking-tight cursor-pointer select-none">
                 WALTZ
               </h1>
             </motion.div>
 
-            {/* Easter egg */}
             <AnimatePresence>
               {easterEgg && (
                 <motion.p
@@ -121,8 +119,8 @@ const LandingPage = () => {
               )}
             </AnimatePresence>
 
-            <p className="text-muted-foreground font-body text-lg mb-1">Who are you going with?</p>
-            <p className="text-muted-foreground/50 font-body text-sm italic">
+            <p className="text-muted-foreground font-body text-base sm:text-lg mb-1">Who are you going with?</p>
+            <p className="text-muted-foreground/50 font-body text-xs sm:text-sm italic">
               The dating app for IIM Shillong
             </p>
           </motion.div>
@@ -134,54 +132,26 @@ const LandingPage = () => {
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3, duration: 0.7 }}
-            className="glass-strong rounded-2xl p-4 mb-6"
+            className="glass-strong rounded-2xl p-3 sm:p-4 mb-6"
           >
             <p className="text-[10px] text-muted-foreground font-body uppercase tracking-widest text-center mb-3">Live from the Clouds</p>
             <div className="flex items-center justify-around">
-              <div className="flex flex-col items-center">
-                <div className="flex items-center gap-1.5">
-                  <Users className="w-4 h-4 text-blossom" />
-                  <motion.span
-                    key={stats.totalUsers}
-                    initial={{ scale: 1.3 }}
-                    animate={{ scale: 1 }}
-                    className="text-lg font-body text-foreground font-bold"
-                  >
-                    {stats.totalUsers}
-                  </motion.span>
+              {[
+                { icon: Users, value: stats.totalUsers, label: "dancers" },
+                { icon: Heart, value: stats.totalMatches, label: "matches", fill: true },
+                { icon: Zap, value: stats.totalSwipes, label: "swipes" },
+              ].map((s, i) => (
+                <div key={s.label} className="flex items-center gap-1.5 sm:gap-2">
+                  {i > 0 && <div className="w-px h-8 bg-border mr-1.5 sm:mr-2" />}
+                  <div className="flex flex-col items-center">
+                    <div className="flex items-center gap-1">
+                      <s.icon className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blossom" fill={s.fill ? "currentColor" : "none"} />
+                      <span className="text-base sm:text-lg font-body text-foreground font-bold">{s.value}</span>
+                    </div>
+                    <span className="text-[9px] sm:text-[10px] text-muted-foreground font-body mt-0.5">{s.label}</span>
+                  </div>
                 </div>
-                <span className="text-[10px] text-muted-foreground font-body mt-0.5">dancers</span>
-              </div>
-              <div className="w-px h-8 bg-border" />
-              <div className="flex flex-col items-center">
-                <div className="flex items-center gap-1.5">
-                  <Heart className="w-4 h-4 text-blossom" fill="currentColor" />
-                  <motion.span
-                    key={stats.totalMatches}
-                    initial={{ scale: 1.3 }}
-                    animate={{ scale: 1 }}
-                    className="text-lg font-body text-foreground font-bold"
-                  >
-                    {stats.totalMatches}
-                  </motion.span>
-                </div>
-                <span className="text-[10px] text-muted-foreground font-body mt-0.5">matches</span>
-              </div>
-              <div className="w-px h-8 bg-border" />
-              <div className="flex flex-col items-center">
-                <div className="flex items-center gap-1.5">
-                  <Zap className="w-4 h-4 text-blossom" />
-                  <motion.span
-                    key={stats.totalSwipes}
-                    initial={{ scale: 1.3 }}
-                    animate={{ scale: 1 }}
-                    className="text-lg font-body text-foreground font-bold"
-                  >
-                    {stats.totalSwipes}
-                  </motion.span>
-                </div>
-                <span className="text-[10px] text-muted-foreground font-body mt-0.5">swipes</span>
-              </div>
+              ))}
             </div>
           </motion.div>
         )}
@@ -193,8 +163,8 @@ const LandingPage = () => {
           transition={{ delay: 0.4, duration: 0.8 }}
           className="mb-6 flex justify-center"
         >
-          <div className="glass-strong rounded-2xl px-6 py-4 inline-block">
-            <p className="text-[10px] text-muted-foreground uppercase tracking-[0.2em] font-body mb-3 text-center">
+          <div className="glass-strong rounded-2xl px-4 sm:px-6 py-3 sm:py-4 inline-block">
+            <p className="text-[9px] sm:text-[10px] text-muted-foreground uppercase tracking-[0.2em] font-body mb-2 sm:mb-3 text-center">
               The music stops in
             </p>
             <CountdownTimer />
@@ -229,13 +199,13 @@ const LandingPage = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.7, duration: 0.8 }}
-          className="text-center mb-10"
+          className="text-center mb-8 sm:mb-10"
         >
           <motion.button
             whileHover={{ scale: 1.04 }}
             whileTap={{ scale: 0.97 }}
             onClick={handleEnter}
-            className="btn-waltz text-lg px-12 py-4"
+            className="btn-waltz text-base sm:text-lg px-10 sm:px-12 py-3.5 sm:py-4"
           >
             Enter the Dance Floor 🌸
           </motion.button>
@@ -249,7 +219,7 @@ const LandingPage = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.9, duration: 0.8 }}
-          className="grid grid-cols-2 gap-3 mb-10"
+          className="grid grid-cols-2 gap-2.5 sm:gap-3 mb-8 sm:mb-10"
         >
           {features.map((f, i) => {
             const Icon = f.icon;
@@ -259,11 +229,11 @@ const LandingPage = () => {
                 initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 1 + i * 0.08, duration: 0.5 }}
-                className="glass rounded-2xl p-4"
+                className="glass rounded-2xl p-3 sm:p-4"
               >
-                <Icon className="w-5 h-5 text-blossom mb-2" />
-                <h3 className="font-display text-sm text-foreground mb-1">{f.title}</h3>
-                <p className="text-[11px] text-muted-foreground font-body leading-relaxed">{f.desc}</p>
+                <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-blossom mb-1.5 sm:mb-2" />
+                <h3 className="font-display text-xs sm:text-sm text-foreground mb-0.5 sm:mb-1">{f.title}</h3>
+                <p className="text-[10px] sm:text-[11px] text-muted-foreground font-body leading-relaxed">{f.desc}</p>
               </motion.div>
             );
           })}
@@ -274,10 +244,10 @@ const LandingPage = () => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 1.3, duration: 0.8 }}
-          className="mb-10"
+          className="mb-8 sm:mb-10"
         >
-          <h2 className="font-display text-xl text-foreground text-center mb-6">How It Works</h2>
-          <div className="space-y-4">
+          <h2 className="font-display text-lg sm:text-xl text-foreground text-center mb-4 sm:mb-6">How It Works</h2>
+          <div className="space-y-3 sm:space-y-4">
             {[
               { step: "1", text: "Sign up with your @iimshillong.ac.in email", emoji: "📧" },
               { step: "2", text: "Build your Anti-CV — no LinkedIn vibes here", emoji: "🎨" },
@@ -290,10 +260,10 @@ const LandingPage = () => {
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 1.4 + i * 0.1, duration: 0.4 }}
-                className="flex items-center gap-4"
+                className="flex items-center gap-3 sm:gap-4"
               >
                 <div
-                  className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-bold"
+                  className="w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center flex-shrink-0 text-xs sm:text-sm font-bold"
                   style={{
                     background: "linear-gradient(135deg, hsl(var(--blossom)), hsl(var(--glow)))",
                     color: "hsl(var(--primary-foreground))",
@@ -301,8 +271,8 @@ const LandingPage = () => {
                 >
                   {item.step}
                 </div>
-                <p className="text-sm text-muted-foreground font-body flex-1">{item.text}</p>
-                <span className="text-lg">{item.emoji}</span>
+                <p className="text-xs sm:text-sm text-muted-foreground font-body flex-1">{item.text}</p>
+                <span className="text-base sm:text-lg">{item.emoji}</span>
               </motion.div>
             ))}
           </div>
@@ -313,11 +283,11 @@ const LandingPage = () => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 1.6, duration: 0.8 }}
-          className="glass rounded-2xl p-5 mb-10 text-center"
+          className="glass rounded-2xl p-4 sm:p-5 mb-8 sm:mb-10 text-center"
         >
-          <Trophy className="w-6 h-6 text-blossom mx-auto mb-2" />
-          <h3 className="font-display text-lg text-foreground mb-1">Built for IIM Shillong</h3>
-          <p className="text-xs text-muted-foreground font-body">
+          <Trophy className="w-5 h-5 sm:w-6 sm:h-6 text-blossom mx-auto mb-2" />
+          <h3 className="font-display text-base sm:text-lg text-foreground mb-1">Built for IIM Shillong</h3>
+          <p className="text-[11px] sm:text-xs text-muted-foreground font-body">
             Every profile is verified. Every match is real. Every swipe stays in the Clouds. 🌸
           </p>
         </motion.div>

@@ -48,6 +48,28 @@ export const LoveBurst = ({ x, y }: { x: number; y: number }) => (
   </div>
 );
 
+// Superlike burst effect
+export const SuperlikeBurst = ({ x, y }: { x: number; y: number }) => (
+  <div className="fixed pointer-events-none z-50" style={{ left: x - 30, top: y - 30 }}>
+    {Array.from({ length: 12 }).map((_, i) => (
+      <motion.span
+        key={i}
+        initial={{ scale: 0, x: 0, y: 0, opacity: 1 }}
+        animate={{
+          scale: [0, 2, 0],
+          x: Math.cos((i * 30 * Math.PI) / 180) * 80,
+          y: Math.sin((i * 30 * Math.PI) / 180) * 80,
+          opacity: [1, 1, 0],
+        }}
+        transition={{ duration: 0.9, ease: "easeOut", delay: i * 0.03 }}
+        className="absolute text-xl"
+      >
+        {["⭐", "✨", "💫", "🌟", "⭐", "✨", "💫", "🌟", "⭐", "✨", "💫", "🌟"][i]}
+      </motion.span>
+    ))}
+  </div>
+);
+
 // Shake to undo last swipe feedback
 export const useShakeDetection = (onShake: () => void) => {
   useEffect(() => {
@@ -97,6 +119,8 @@ export const LOADING_QUIPS = [
   "Defrosting the cold Shillong air...",
   "Negotiating with the placement committee...",
   "Loading your anti-LinkedIn profile...",
+  "Running the vibe check algorithm...",
+  "Summoning the campus matchmaker...",
 ];
 
 export const getRandomQuip = () => LOADING_QUIPS[Math.floor(Math.random() * LOADING_QUIPS.length)];
@@ -140,7 +164,7 @@ export const ConfettiBurst = ({ active }: { active: boolean }) => {
           transition={{ duration: 1.5 + Math.random(), ease: "easeOut" }}
           className="absolute text-lg"
         >
-          {["🌸", "🎉", "✨", "💕", "🌷", "🎊"][i % 6]}
+          {["🌸", "🎉", "✨", "💕", "🌷", "🎊", "⭐", "💫"][i % 8]}
         </motion.div>
       ))}
     </div>
@@ -161,3 +185,15 @@ export const StreakBadge = ({ days }: { days: number }) => {
     </motion.div>
   );
 };
+
+// Random fun facts that appear on empty states
+export const FUN_FACTS = [
+  "Fun fact: 73% of campus matches start with a bad pun.",
+  "Did you know? The busiest swipe hour is 11 PM, right after the mess closes.",
+  "Pro tip: People with red flags get 2x more crushes. Go figure.",
+  "Stat: Cross-section matches have a 40% higher chat rate.",
+  "The most swiped-right batch? PGP25, obviously.",
+  "Fun fact: The average Waltz conversation lasts 47 messages.",
+];
+
+export const getRandomFunFact = () => FUN_FACTS[Math.floor(Math.random() * FUN_FACTS.length)];

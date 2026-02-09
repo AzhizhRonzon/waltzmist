@@ -9,7 +9,11 @@ interface TimeLeft {
   seconds: number;
 }
 
-const CountdownTimer = () => {
+interface CountdownTimerProps {
+  compact?: boolean;
+}
+
+const CountdownTimer = ({ compact = false }: CountdownTimerProps) => {
   const [timeLeft, setTimeLeft] = useState<TimeLeft>({ days: 0, hours: 0, minutes: 0, seconds: 0 });
   const [isOver, setIsOver] = useState(false);
 
@@ -38,37 +42,50 @@ const CountdownTimer = () => {
 
   if (isOver) {
     return (
-      <div className="text-center">
-        <p className="font-display text-xl italic text-blossom animate-pulse-glow">
-          The music has stopped 🌸
-        </p>
+      <p className="font-display text-sm italic text-blossom animate-pulse-glow whitespace-nowrap">
+        The music has stopped 🌸
+      </p>
+    );
+  }
+
+  // Compact mode: single line for tight spaces (discover header, chat header)
+  if (compact) {
+    return (
+      <div className="flex items-center gap-1 font-body tabular-nums text-blossom text-xs font-semibold whitespace-nowrap">
+        <span>{timeLeft.days}d</span>
+        <span className="text-blossom/40">:</span>
+        <span>{String(timeLeft.hours).padStart(2, "0")}h</span>
+        <span className="text-blossom/40">:</span>
+        <span>{String(timeLeft.minutes).padStart(2, "0")}m</span>
+        <span className="text-blossom/40">:</span>
+        <span>{String(timeLeft.seconds).padStart(2, "0")}s</span>
       </div>
     );
   }
 
   const blocks = [
     { label: "Days", value: timeLeft.days },
-    { label: "Hours", value: timeLeft.hours },
+    { label: "Hrs", value: timeLeft.hours },
     { label: "Min", value: timeLeft.minutes },
     { label: "Sec", value: timeLeft.seconds },
   ];
 
   return (
-    <div className="flex items-center gap-3">
+    <div className="flex items-center gap-1.5 sm:gap-3">
       {blocks.map((block, i) => (
-        <div key={block.label} className="flex items-center gap-3">
+        <div key={block.label} className="flex items-center gap-1.5 sm:gap-3">
           <div className="flex flex-col items-center">
-            <div className="glass rounded-xl px-3 py-2 min-w-[52px] text-center animate-count-pulse">
-              <span className="text-2xl font-bold text-blossom font-body tabular-nums">
+            <div className="glass rounded-lg sm:rounded-xl px-2 sm:px-3 py-1.5 sm:py-2 min-w-[36px] sm:min-w-[52px] text-center animate-count-pulse">
+              <span className="text-lg sm:text-2xl font-bold text-blossom font-body tabular-nums">
                 {String(block.value).padStart(2, "0")}
               </span>
             </div>
-            <span className="text-[10px] text-muted-foreground mt-1 font-body uppercase tracking-wider">
+            <span className="text-[8px] sm:text-[10px] text-muted-foreground mt-0.5 sm:mt-1 font-body uppercase tracking-wider">
               {block.label}
             </span>
           </div>
           {i < blocks.length - 1 && (
-            <span className="text-blossom/40 text-lg font-bold mb-4">:</span>
+            <span className="text-blossom/40 text-sm sm:text-lg font-bold mb-3 sm:mb-4">:</span>
           )}
         </div>
       ))}

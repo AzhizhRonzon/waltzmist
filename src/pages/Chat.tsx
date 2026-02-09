@@ -80,7 +80,6 @@ const ChatPage = () => {
     await loadMoreMessages(matchId);
     setLoadingMore(false);
 
-    // Maintain scroll position after prepending older messages
     if (scrollEl) {
       requestAnimationFrame(() => {
         scrollEl.scrollTop = scrollEl.scrollHeight - prevHeight;
@@ -136,21 +135,21 @@ const ChatPage = () => {
       <FallingPetals count={4} />
 
       <header className="relative z-20 glass-strong border-b border-border/20">
-        <div className="px-4 pt-3 pb-2 flex items-center justify-center">
+        <div className="px-3 sm:px-4 pt-2 sm:pt-3 pb-1.5 sm:pb-2 flex items-center justify-center">
           <div className="flex items-center gap-2">
-            <span className="text-[10px] text-muted-foreground font-body uppercase tracking-widest">Waltz Night in</span>
-            <CountdownTimer />
+            <span className="text-[9px] sm:text-[10px] text-muted-foreground font-body uppercase tracking-widest">Waltz Night in</span>
+            <CountdownTimer compact />
           </div>
         </div>
-        <div className="px-4 pb-3 flex items-center gap-3">
+        <div className="px-3 sm:px-4 pb-2 sm:pb-3 flex items-center gap-3">
           <button onClick={() => navigate("/whispers")} className="p-1.5 rounded-full hover:bg-secondary/50 transition-colors">
             <ArrowLeft className="w-5 h-5 text-foreground" />
           </button>
           <div className="relative">
             <img src={match?.profile.photos[0] || ""} alt={match?.profile.name} className="w-10 h-10 rounded-full object-cover border-2 border-blossom/30" loading="lazy" />
           </div>
-          <div className="flex-1">
-            <h3 className="font-display text-lg text-foreground leading-tight">{match?.profile.name}</h3>
+          <div className="flex-1 min-w-0">
+            <h3 className="font-display text-lg text-foreground leading-tight truncate">{match?.profile.name}</h3>
             <p className="text-[11px] text-muted-foreground font-body">{match?.profile.batch}</p>
           </div>
           <DropdownMenu>
@@ -180,7 +179,7 @@ const ChatPage = () => {
         </div>
       </header>
 
-      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 relative z-10">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto px-3 sm:px-4 py-4 relative z-10">
         {/* Load more button */}
         {canLoadMore && !chatLoading && (
           <div className="flex justify-center mb-4">
@@ -241,7 +240,7 @@ const ChatPage = () => {
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            className="relative z-20 px-4 overflow-hidden"
+            className="relative z-20 px-3 sm:px-4 overflow-hidden"
           >
             <div className="glass rounded-2xl p-3 mb-2 space-y-1.5">
               <p className="text-[10px] text-blossom uppercase tracking-widest font-body">Icebreakers 💡</p>
@@ -259,9 +258,9 @@ const ChatPage = () => {
         )}
       </AnimatePresence>
 
-      <div className="relative z-20 px-4 pb-6 pt-2">
-        <div className="glass-strong rounded-full flex items-center gap-2 px-4 py-2 blossom-glow">
-          <button onClick={() => setShowIcebreakers(!showIcebreakers)} className="p-1 rounded-full hover:bg-secondary/50 transition-colors">
+      <div className="relative z-20 px-3 sm:px-4 pb-4 sm:pb-6 pt-2">
+        <div className="glass-strong rounded-full flex items-center gap-2 px-3 sm:px-4 py-2 blossom-glow">
+          <button onClick={() => setShowIcebreakers(!showIcebreakers)} className="p-1 rounded-full hover:bg-secondary/50 transition-colors flex-shrink-0">
             <Lightbulb className="w-4 h-4 text-muted-foreground" />
           </button>
           <input
@@ -271,7 +270,7 @@ const ChatPage = () => {
             onChange={(e) => setNewMessage(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Say something risky..."
-            className="flex-1 bg-transparent text-foreground font-body text-sm placeholder:text-muted-foreground/40 focus:outline-none py-1.5"
+            className="flex-1 min-w-0 bg-transparent text-foreground font-body text-sm placeholder:text-muted-foreground/40 focus:outline-none py-1.5"
             maxLength={500}
           />
           {session?.user && match && (
@@ -282,7 +281,7 @@ const ChatPage = () => {
             whileTap={{ scale: 0.9 }}
             onClick={handleSend}
             disabled={!newMessage.trim()}
-            className="p-2 rounded-full transition-all disabled:opacity-30"
+            className="p-2 rounded-full transition-all disabled:opacity-30 flex-shrink-0"
             style={{ background: newMessage.trim() ? "linear-gradient(135deg, hsl(var(--blossom)), hsl(var(--glow)))" : "transparent" }}
           >
             <Send className={`w-4 h-4 ${newMessage.trim() ? "text-primary-foreground" : "text-muted-foreground"}`} />
@@ -303,7 +302,7 @@ const ChatPage = () => {
 
       {/* Confirm Block/Unmatch Dialog */}
       <AlertDialog open={!!confirmAction} onOpenChange={(open) => !open && setConfirmAction(null)}>
-        <AlertDialogContent className="glass-strong border-border/30">
+        <AlertDialogContent className="glass-strong border-border/30 mx-4">
           <AlertDialogHeader>
             <AlertDialogTitle className="font-display text-foreground">
               {confirmAction?.type === "block" ? "Block User?" : "Unmatch?"}

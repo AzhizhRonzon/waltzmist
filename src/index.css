@@ -248,4 +248,20 @@
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
+
+  /* Safe area for notch/home indicator on modern phones */
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  /* Haptic tap feedback */
+  .tap-highlight {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Prevent text selection on interactive elements */
+  .select-none-deep * {
+    user-select: none;
+    -webkit-user-select: none;
+  }
 }

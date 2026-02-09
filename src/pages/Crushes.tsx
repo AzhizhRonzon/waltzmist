@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Heart, Plus, Send, Sparkles } from "lucide-react";
+import { Heart, Plus, Send, Sparkles, Eye } from "lucide-react";
 import FallingPetals from "../components/FallingPetals";
 import BottomNav from "../components/BottomNav";
 import SecretAdmirerCard from "../components/SecretAdmirerCard";
@@ -15,7 +15,7 @@ const CrushesPage = () => {
     <div className="min-h-screen breathing-bg flex flex-col relative pb-20">
       <FallingPetals count={6} />
 
-      <header className="relative z-20 px-4 sm:px-5 pt-4 sm:pt-5 pb-2">
+      <header className="relative z-20 px-3 sm:px-5 pt-3 sm:pt-5 pb-2">
         <div className="flex items-center justify-between mb-2">
           <div>
             <h1 className="font-display text-2xl sm:text-3xl font-bold text-foreground">
@@ -38,10 +38,10 @@ const CrushesPage = () => {
         </div>
       </header>
 
-      <div className="flex-1 relative z-10 px-4 sm:px-5 mt-2 space-y-6">
+      <div className="flex-1 relative z-10 px-3 sm:px-5 mt-2 space-y-6">
         {/* Received Crushes */}
         <div>
-          <h2 className="font-display text-lg text-foreground mb-3 flex items-center gap-2">
+          <h2 className="font-display text-base sm:text-lg text-foreground mb-3 flex items-center gap-2">
             <Heart className="w-4 h-4" style={{ color: "hsl(45 100% 70%)" }} />
             Received ({crushesReceived.length})
           </h2>
@@ -50,14 +50,17 @@ const CrushesPage = () => {
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="glass rounded-2xl p-8 text-center"
+              className="glass rounded-2xl p-6 sm:p-8 text-center"
             >
               <motion.div animate={{ rotate: [0, 10, -10, 0] }} transition={{ duration: 3, repeat: Infinity }}>
                 <Sparkles className="w-10 h-10 text-blossom/30 mx-auto mb-3" />
               </motion.div>
-              <p className="text-foreground font-display text-lg mb-1">No secret admirers... yet</p>
-              <p className="text-muted-foreground font-body text-sm">
+              <p className="text-foreground font-display text-base sm:text-lg mb-1">No secret admirers... yet</p>
+              <p className="text-muted-foreground font-body text-xs sm:text-sm">
                 Keep being awesome! Someone's building up the courage. ✨
+              </p>
+              <p className="text-[10px] text-muted-foreground/40 font-body mt-3 italic">
+                Pro tip: A great red flag attracts more crushes 🚩
               </p>
             </motion.div>
           ) : (
@@ -71,7 +74,7 @@ const CrushesPage = () => {
 
         {/* Sent Crushes */}
         <div>
-          <h2 className="font-display text-lg text-foreground mb-3 flex items-center gap-2">
+          <h2 className="font-display text-base sm:text-lg text-foreground mb-3 flex items-center gap-2">
             <Send className="w-4 h-4 text-blossom" />
             Sent ({crushesSent.length}/3)
           </h2>
@@ -80,8 +83,14 @@ const CrushesPage = () => {
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="glass rounded-2xl p-6 text-center"
+              className="glass rounded-2xl p-5 sm:p-6 text-center"
             >
+              <motion.div
+                animate={{ y: [0, -5, 0] }}
+                transition={{ duration: 2, repeat: Infinity }}
+              >
+                <Eye className="w-8 h-8 text-blossom/30 mx-auto mb-2" />
+              </motion.div>
               <p className="text-foreground font-body text-sm mb-1">You haven't sent any anonymous crushes yet.</p>
               <p className="text-muted-foreground font-body text-xs">Go on, be brave! 💕</p>
               <button onClick={() => setShowSendModal(true)} className="btn-waltz mt-4 text-sm">
@@ -96,14 +105,14 @@ const CrushesPage = () => {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.1 }}
-                  className="glass rounded-2xl p-4"
+                  className="glass rounded-2xl p-3 sm:p-4"
                 >
                   <div className="flex items-center justify-between">
-                    <div>
+                    <div className="min-w-0 flex-1">
                       <p className="text-xs text-muted-foreground font-body">Crush #{i + 1}</p>
-                      <p className="text-sm text-foreground font-body mt-1">Hint: "{crush.hint}"</p>
+                      <p className="text-sm text-foreground font-body mt-1 truncate">Hint: "{crush.hint}"</p>
                     </div>
-                    <div className="glass rounded-full px-2 py-0.5">
+                    <div className="glass rounded-full px-2 py-0.5 flex-shrink-0 ml-2">
                       <span className="text-[9px] text-muted-foreground font-body">
                         {crush.sentAt.toLocaleDateString()}
                       </span>
