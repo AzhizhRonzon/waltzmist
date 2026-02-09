@@ -6,13 +6,15 @@ import BottomNav from "../components/BottomNav";
 import SecretAdmirerCard from "../components/SecretAdmirerCard";
 import SendCrushModal from "../components/SendCrushModal";
 import { useWaltzStore } from "../context/WaltzStore";
-
 const CrushesPage = () => {
-  const { crushesReceived, crushesSent, sendCrush, guessCrush } = useWaltzStore();
+  const {
+    crushesReceived,
+    crushesSent,
+    sendCrush,
+    guessCrush
+  } = useWaltzStore();
   const [showSendModal, setShowSendModal] = useState(false);
-
-  return (
-    <div className="min-h-screen breathing-bg flex flex-col relative pb-20">
+  return <div className="min-h-screen breathing-bg flex flex-col relative pb-20">
       <FallingPetals count={6} />
 
       <header className="relative z-20 px-3 sm:px-5 pt-3 sm:pt-5 pb-2">
@@ -25,14 +27,13 @@ const CrushesPage = () => {
               Anonymous crushes & mystery 💌
             </p>
           </div>
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => setShowSendModal(true)}
-            className="w-10 h-10 rounded-full flex items-center justify-center"
-            style={{ background: "linear-gradient(135deg, hsl(var(--blossom)), hsl(var(--glow)))" }}
-            aria-label="Send a crush"
-          >
+          <motion.button whileHover={{
+          scale: 1.05
+        }} whileTap={{
+          scale: 0.95
+        }} onClick={() => setShowSendModal(true)} className="w-10 h-10 rounded-full flex items-center justify-center" style={{
+          background: "linear-gradient(135deg, hsl(var(--blossom)), hsl(var(--glow)))"
+        }} aria-label="Send a crush">
             <Plus className="w-5 h-5 text-primary-foreground" />
           </motion.button>
         </div>
@@ -42,17 +43,25 @@ const CrushesPage = () => {
         {/* Received Crushes */}
         <div>
           <h2 className="font-display text-base sm:text-lg text-foreground mb-3 flex items-center gap-2">
-            <Heart className="w-4 h-4" style={{ color: "hsl(45 100% 70%)" }} />
+            <Heart className="w-4 h-4" style={{
+            color: "hsl(45 100% 70%)"
+          }} />
             Received ({crushesReceived.length})
           </h2>
 
-          {crushesReceived.length === 0 ? (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="glass rounded-2xl p-6 sm:p-8 text-center"
-            >
-              <motion.div animate={{ rotate: [0, 10, -10, 0] }} transition={{ duration: 3, repeat: Infinity }}>
+          {crushesReceived.length === 0 ? <motion.div initial={{
+          opacity: 0,
+          y: 10
+        }} animate={{
+          opacity: 1,
+          y: 0
+        }} className="glass rounded-2xl p-6 sm:p-8 text-center">
+              <motion.div animate={{
+            rotate: [0, 10, -10, 0]
+          }} transition={{
+            duration: 3,
+            repeat: Infinity
+          }}>
                 <Sparkles className="w-10 h-10 text-blossom/30 mx-auto mb-3" />
               </motion.div>
               <p className="text-foreground font-display text-base sm:text-lg mb-1">No secret admirers... yet</p>
@@ -60,16 +69,10 @@ const CrushesPage = () => {
                 Keep being awesome! Someone's building up the courage. ✨
               </p>
               <p className="text-[10px] text-muted-foreground/40 font-body mt-3 italic">
-                Pro tip: A great red flag attracts more crushes 🚩
-              </p>
-            </motion.div>
-          ) : (
-            <div className="space-y-3">
-              {crushesReceived.map((crush) => (
-                <SecretAdmirerCard key={crush.id} crush={crush} onGuess={guessCrush} />
-              ))}
-            </div>
-          )}
+          </p>
+            </motion.div> : <div className="space-y-3">
+              {crushesReceived.map(crush => <SecretAdmirerCard key={crush.id} crush={crush} onGuess={guessCrush} />)}
+            </div>}
         </div>
 
         {/* Sent Crushes */}
@@ -79,16 +82,19 @@ const CrushesPage = () => {
             Sent ({crushesSent.length}/3)
           </h2>
 
-          {crushesSent.length === 0 ? (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="glass rounded-2xl p-5 sm:p-6 text-center"
-            >
-              <motion.div
-                animate={{ y: [0, -5, 0] }}
-                transition={{ duration: 2, repeat: Infinity }}
-              >
+          {crushesSent.length === 0 ? <motion.div initial={{
+          opacity: 0,
+          y: 10
+        }} animate={{
+          opacity: 1,
+          y: 0
+        }} className="glass rounded-2xl p-5 sm:p-6 text-center">
+              <motion.div animate={{
+            y: [0, -5, 0]
+          }} transition={{
+            duration: 2,
+            repeat: Infinity
+          }}>
                 <Eye className="w-8 h-8 text-blossom/30 mx-auto mb-2" />
               </motion.div>
               <p className="text-foreground font-body text-sm mb-1">You haven't sent any anonymous crushes yet.</p>
@@ -96,17 +102,16 @@ const CrushesPage = () => {
               <button onClick={() => setShowSendModal(true)} className="btn-waltz mt-4 text-sm">
                 Send Your First Crush
               </button>
-            </motion.div>
-          ) : (
-            <div className="space-y-2">
-              {crushesSent.map((crush, i) => (
-                <motion.div
-                  key={crush.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.1 }}
-                  className="glass rounded-2xl p-3 sm:p-4"
-                >
+            </motion.div> : <div className="space-y-2">
+              {crushesSent.map((crush, i) => <motion.div key={crush.id} initial={{
+            opacity: 0,
+            y: 10
+          }} animate={{
+            opacity: 1,
+            y: 0
+          }} transition={{
+            delay: i * 0.1
+          }} className="glass rounded-2xl p-3 sm:p-4">
                   <div className="flex items-center justify-between">
                     <div className="min-w-0 flex-1">
                       <p className="text-xs text-muted-foreground font-body">Crush #{i + 1}</p>
@@ -118,26 +123,16 @@ const CrushesPage = () => {
                       </span>
                     </div>
                   </div>
-                </motion.div>
-              ))}
-            </div>
-          )}
+                </motion.div>)}
+            </div>}
         </div>
       </div>
 
       <BottomNav />
 
       <AnimatePresence>
-        {showSendModal && (
-          <SendCrushModal
-            onSend={sendCrush}
-            onClose={() => setShowSendModal(false)}
-            crushesRemaining={3 - crushesSent.length}
-          />
-        )}
+        {showSendModal && <SendCrushModal onSend={sendCrush} onClose={() => setShowSendModal(false)} crushesRemaining={3 - crushesSent.length} />}
       </AnimatePresence>
-    </div>
-  );
+    </div>;
 };
-
 export default CrushesPage;
