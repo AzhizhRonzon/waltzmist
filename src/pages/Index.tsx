@@ -66,7 +66,7 @@ const LandingPage = () => {
 
   const handleEnter = () => {
     setEntered(true);
-    setTimeout(() => navigate("/login"), 600);
+    setTimeout(() => navigate("/login"), 400);
   };
 
   const features = [
