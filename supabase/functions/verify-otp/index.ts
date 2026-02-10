@@ -13,10 +13,10 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { email, code } = await req.json();
+    const { email, code, password, action } = await req.json();
 
-    if (!email || !code) {
-      return new Response(JSON.stringify({ error: "Missing email or code" }), {
+    if (!email) {
+      return new Response(JSON.stringify({ error: "Missing email" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -25,6 +25,51 @@ const handler = async (req: Request): Promise<Response> => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const adminClient = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Action: reset_password — update password for existing user (no code needed, already verified)
+    if (action === "reset_password") {
+      if (!password || password.length < 6) {
+        return new Response(JSON.stringify({ error: "Password must be at least 6 characters" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const { data: existingUsers } = await adminClient.auth.admin.listUsers();
+      const existingUser = existingUsers?.users?.find((u: any) => u.email === email);
+
+      if (!existingUser) {
+        return new Response(JSON.stringify({ error: "User not found" }), {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const { error: updateError } = await adminClient.auth.admin.updateUserById(existingUser.id, {
+        password,
+      });
+
+      if (updateError) {
+        console.error("Password update error:", updateError);
+        return new Response(JSON.stringify({ error: "Failed to update password" }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      return new Response(JSON.stringify({ success: true, message: "Password updated" }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // All other actions require a code
+    if (!code) {
+      return new Response(JSON.stringify({ error: "Missing code" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     // Find valid, unused code
     const { data: codeRow, error: fetchError } = await adminClient
@@ -39,7 +84,6 @@ const handler = async (req: Request): Promise<Response> => {
       .maybeSingle();
 
     if (fetchError || !codeRow) {
-      // Check if there was an expired code
       const { data: expiredCode } = await adminClient
         .from("verification_codes")
         .select("id")
@@ -68,6 +112,22 @@ const handler = async (req: Request): Promise<Response> => {
       .update({ used: true })
       .eq("id", codeRow.id);
 
+    // Action: verify_only — just confirm the code is valid (for forgot password flow)
+    if (action === "verify_only") {
+      return new Response(JSON.stringify({ success: true, verified: true }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Action: signup — create user with password and return session token
+    if (!password || password.length < 6) {
+      return new Response(JSON.stringify({ error: "Password must be at least 6 characters" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Check if user already exists
     const { data: existingUsers } = await adminClient.auth.admin.listUsers();
     const existingUser = existingUsers?.users?.find((u: any) => u.email === email);
@@ -76,18 +136,15 @@ const handler = async (req: Request): Promise<Response> => {
 
     if (existingUser) {
       userId = existingUser.id;
-      // Update email_confirmed_at if not set
-      if (!existingUser.email_confirmed_at) {
-        await adminClient.auth.admin.updateUserById(userId, {
-          email_confirm: true,
-        });
-      }
+      // Update password and confirm email
+      await adminClient.auth.admin.updateUserById(userId, {
+        password,
+        email_confirm: true,
+      });
     } else {
-      // Create new user with a random password (they'll always use OTP to sign in)
-      const randomPassword = crypto.randomUUID() + crypto.randomUUID();
       const { data: newUser, error: createError } = await adminClient.auth.admin.createUser({
         email,
-        password: randomPassword,
+        password,
         email_confirm: true,
       });
 
@@ -101,7 +158,7 @@ const handler = async (req: Request): Promise<Response> => {
       userId = newUser.user.id;
     }
 
-    // Generate a magic link token for passwordless sign-in
+    // Generate a magic link token for immediate sign-in after signup
     const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
       type: "magiclink",
       email,
@@ -115,7 +172,6 @@ const handler = async (req: Request): Promise<Response> => {
       });
     }
 
-    // Extract the token_hash from the generated link properties
     const tokenHash = linkData.properties?.hashed_token;
 
     if (!tokenHash) {
