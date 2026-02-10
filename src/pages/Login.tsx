@@ -1,11 +1,10 @@
 import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Mail, Lock, Eye, EyeOff, ArrowLeft, CheckCircle, KeyRound } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff, ArrowLeft, KeyRound } from "lucide-react";
 import FallingPetals from "../components/FallingPetals";
 import { useWaltzStore } from "../context/WaltzStore";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-import { getRandomQuip } from "../components/EasterEggs";
 
 type AuthStep = "form" | "verify" | "success";
 
@@ -22,13 +21,10 @@ const LoginPage = () => {
   const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
   const { signIn } = useWaltzStore();
 
-  const generateOTP = () => {
-    return Math.floor(100000 + Math.random() * 900000).toString();
-  };
+  const generateOTP = () => Math.floor(100000 + Math.random() * 900000).toString();
 
   const sendVerificationEmail = async (targetEmail: string) => {
     const code = generateOTP();
-    // Store OTP in localStorage for verification (expires in 10 min)
     localStorage.setItem(`waltz_otp_${targetEmail}`, JSON.stringify({
       code,
       expiresAt: Date.now() + 10 * 60 * 1000,
@@ -38,7 +34,17 @@ const LoginPage = () => {
       body: { email: targetEmail, otp: code },
     });
 
-    if (error) throw new Error(error.message || "Failed to send verification email");
+    if (error) {
+      console.error("Edge function error:", error);
+      throw new Error(error.message || "Failed to send verification email");
+    }
+
+    // Check if the response itself contains an error
+    if (data?.error) {
+      console.error("Email send error:", data.error);
+      throw new Error(data.error);
+    }
+
     return data;
   };
 
@@ -56,7 +62,7 @@ const LoginPage = () => {
     setLoading(true);
     if (isSignUp) {
       try {
-        // First create the account with auto-confirm disabled
+        // Sign up with auto-confirm enabled
         const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
           email: trimmedEmail,
           password,
@@ -64,7 +70,6 @@ const LoginPage = () => {
         });
 
         if (signUpError) {
-          // Handle "user already registered"
           if (signUpError.message.includes("already registered")) {
             setError("This email is already registered. Try signing in instead.");
             setLoading(false);
@@ -73,15 +78,32 @@ const LoginPage = () => {
           throw signUpError;
         }
 
-        // Send OTP verification email via Resend
-        await sendVerificationEmail(trimmedEmail);
-        setStep("verify");
-        toast({ title: "Code sent! 📧", description: "Check your email for the 6-digit code." });
+        // Send OTP via Resend
+        try {
+          await sendVerificationEmail(trimmedEmail);
+          setStep("verify");
+          toast({ title: "Code sent! 📧", description: "Check your email for the 6-digit code." });
+        } catch (emailErr: any) {
+          console.error("Email sending failed:", emailErr);
+          // If email fails (e.g. domain not verified), still allow through with a warning
+          // The account is created, user can sign in
+          toast({
+            title: "⚠️ Email delivery issue",
+            description: "Account created but verification email couldn't be sent. You can sign in directly for now.",
+            variant: "destructive",
+          });
+          // Auto sign-in since auto-confirm is on
+          const result = await signIn(trimmedEmail, password);
+          if (result.error) {
+            setError(result.error);
+          }
+        }
       } catch (err: any) {
         setError(err.message || "Something went wrong. Try again.");
       }
       setLoading(false);
     } else {
+      // Sign in
       const result = await signIn(trimmedEmail, password);
       setLoading(false);
       if (result.error) { setError(result.error); return; }
@@ -91,33 +113,23 @@ const LoginPage = () => {
   const handleOtpChange = (index: number, value: string) => {
     if (value.length > 1) value = value[value.length - 1];
     if (!/^\d*$/.test(value)) return;
-
     const newOtp = [...otp];
     newOtp[index] = value;
     setOtp(newOtp);
-
-    if (value && index < 5) {
-      otpRefs.current[index + 1]?.focus();
-    }
+    if (value && index < 5) otpRefs.current[index + 1]?.focus();
   };
 
   const handleOtpKeyDown = (index: number, e: React.KeyboardEvent) => {
-    if (e.key === "Backspace" && !otp[index] && index > 0) {
-      otpRefs.current[index - 1]?.focus();
-    }
+    if (e.key === "Backspace" && !otp[index] && index > 0) otpRefs.current[index - 1]?.focus();
   };
 
   const handleOtpPaste = (e: React.ClipboardEvent) => {
     e.preventDefault();
     const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
     const newOtp = [...otp];
-    for (let i = 0; i < pasted.length; i++) {
-      newOtp[i] = pasted[i];
-    }
+    for (let i = 0; i < pasted.length; i++) newOtp[i] = pasted[i];
     setOtp(newOtp);
-    if (pasted.length === 6) {
-      otpRefs.current[5]?.focus();
-    }
+    if (pasted.length === 6) otpRefs.current[5]?.focus();
   };
 
   const verifyOTP = async () => {
@@ -129,7 +141,7 @@ const LoginPage = () => {
 
     const trimmedEmail = email.trim().toLowerCase();
     const stored = localStorage.getItem(`waltz_otp_${trimmedEmail}`);
-    
+
     if (!stored) {
       setError("Verification expired. Please request a new code.");
       setLoading(false);
@@ -137,7 +149,7 @@ const LoginPage = () => {
     }
 
     const { code: storedCode, expiresAt } = JSON.parse(stored);
-    
+
     if (Date.now() > expiresAt) {
       localStorage.removeItem(`waltz_otp_${trimmedEmail}`);
       setError("Code expired. Please request a new one.");
@@ -151,18 +163,20 @@ const LoginPage = () => {
       return;
     }
 
-    // OTP verified — sign in
+    // OTP verified — sign in (auto-confirm is on, so account is ready)
     localStorage.removeItem(`waltz_otp_${trimmedEmail}`);
+
+    // Mark email as verified in profiles (will happen after profile setup)
     const result = await signIn(trimmedEmail, password);
     setLoading(false);
 
     if (result.error) {
-      // If sign-in fails, email might not be confirmed yet
       setError(result.error);
       return;
     }
 
     setStep("success");
+    toast({ title: "🌸 Verified!", description: "Welcome to WALTZ." });
   };
 
   const handleResendOTP = async () => {
@@ -221,7 +235,6 @@ const LoginPage = () => {
                 </p>
               </div>
 
-              {/* OTP Input */}
               <div className="flex justify-center gap-2" onPaste={handleOtpPaste}>
                 {otp.map((digit, i) => (
                   <input
@@ -256,11 +269,8 @@ const LoginPage = () => {
               >
                 {loading ? (
                   <span className="flex items-center justify-center gap-2">
-                    <motion.span
-                      animate={{ rotate: 360 }}
-                      transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                      className="inline-block w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full"
-                    />
+                    <motion.span animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                      className="inline-block w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full" />
                     Verifying...
                   </span>
                 ) : "Verify & Enter"}
@@ -296,7 +306,6 @@ const LoginPage = () => {
               className="space-y-4"
             >
               <div className="glass-strong rounded-2xl p-6 space-y-4 blossom-glow">
-                {/* Email */}
                 <div>
                   <label className="text-xs text-muted-foreground font-body block mb-2 uppercase tracking-wider">
                     College Email
@@ -315,7 +324,6 @@ const LoginPage = () => {
                   </div>
                 </div>
 
-                {/* Password */}
                 <div>
                   <label className="text-xs text-muted-foreground font-body block mb-2 uppercase tracking-wider">
                     Password
@@ -361,11 +369,8 @@ const LoginPage = () => {
                 >
                   {loading ? (
                     <span className="flex items-center justify-center gap-2">
-                      <motion.span
-                        animate={{ rotate: 360 }}
-                        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                        className="inline-block w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full"
-                      />
+                      <motion.span animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                        className="inline-block w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full" />
                       {isSignUp ? "Creating account..." : "Signing in..."}
                     </span>
                   ) : isSignUp ? "Enter the Dance Floor" : "Welcome Back"}
