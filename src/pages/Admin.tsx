@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
-import { Shield, Users, Heart, AlertTriangle, Ban, Trash2, Eye, ArrowLeft, RefreshCw } from "lucide-react";
+import { Shield, Users, Heart, AlertTriangle, Ban, Trash2, Eye, ArrowLeft, RefreshCw, CheckSquare, Square } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useWaltzStore } from "@/context/WaltzStore";
 import { useNavigate } from "react-router-dom";
@@ -44,6 +44,7 @@ const AdminPage = () => {
   const [reports, setReports] = useState<AdminReport[]>([]);
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [selectedUsers, setSelectedUsers] = useState<Set<string>>(new Set());
 
   const callAdmin = useCallback(async (action: string, extra: Record<string, any> = {}) => {
     const { data, error } = await supabase.functions.invoke("admin-actions", {
@@ -54,7 +55,6 @@ const AdminPage = () => {
     return data;
   }, []);
 
-  // Check admin role
   useEffect(() => {
     if (!session?.user) { navigate("/login"); return; }
     const checkRole = async () => {
@@ -79,6 +79,7 @@ const AdminPage = () => {
       } else if (t === "users") {
         const data = await callAdmin("get_all_users");
         setUsers(data.users || []);
+        setSelectedUsers(new Set());
       } else if (t === "reports") {
         const data = await callAdmin("get_reports");
         setReports(data.reports || []);
@@ -92,6 +93,22 @@ const AdminPage = () => {
   useEffect(() => {
     if (isAdmin) loadTab(tab);
   }, [isAdmin, tab, loadTab]);
+
+  const toggleSelect = (userId: string) => {
+    setSelectedUsers(prev => {
+      const next = new Set(prev);
+      if (next.has(userId)) next.delete(userId); else next.add(userId);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedUsers.size === users.length) {
+      setSelectedUsers(new Set());
+    } else {
+      setSelectedUsers(new Set(users.map(u => u.id)));
+    }
+  };
 
   const handleShadowBan = async (userId: string, ban: boolean) => {
     setActionLoading(userId);
@@ -111,6 +128,34 @@ const AdminPage = () => {
     try {
       await callAdmin("delete_user", { target_user_id: userId });
       toast({ title: "User deleted" });
+      loadTab("users");
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    }
+    setActionLoading(null);
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedUsers.size === 0) return;
+    if (!confirm(`Are you sure you want to permanently delete ${selectedUsers.size} user(s)?`)) return;
+    setActionLoading("bulk");
+    try {
+      await callAdmin("bulk_delete_users", { target_user_ids: Array.from(selectedUsers) });
+      toast({ title: `${selectedUsers.size} user(s) deleted` });
+      loadTab("users");
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    }
+    setActionLoading(null);
+  };
+
+  const handleBulkBan = async () => {
+    if (selectedUsers.size === 0) return;
+    if (!confirm(`Shadow ban ${selectedUsers.size} user(s)?`)) return;
+    setActionLoading("bulk");
+    try {
+      await callAdmin("bulk_shadow_ban", { target_user_ids: Array.from(selectedUsers) });
+      toast({ title: `${selectedUsers.size} user(s) shadow banned` });
       loadTab("users");
     } catch (err: any) {
       toast({ title: "Error", description: err.message, variant: "destructive" });
@@ -195,9 +240,43 @@ const AdminPage = () => {
 
             {tab === "users" && (
               <div className="space-y-2">
-                <div className="text-sm text-muted-foreground mb-3">{users.length} users total</div>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-3">
+                    <button onClick={toggleSelectAll} className="text-muted-foreground hover:text-foreground">
+                      {selectedUsers.size === users.length && users.length > 0
+                        ? <CheckSquare className="w-5 h-5 text-blossom" />
+                        : <Square className="w-5 h-5" />}
+                    </button>
+                    <span className="text-sm text-muted-foreground">
+                      {selectedUsers.size > 0 ? `${selectedUsers.size} selected` : `${users.length} users total`}
+                    </span>
+                  </div>
+                  {selectedUsers.size > 0 && (
+                    <div className="flex gap-2">
+                      <button
+                        onClick={handleBulkBan}
+                        disabled={actionLoading === "bulk"}
+                        className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs bg-yellow-500/20 text-yellow-400 hover:opacity-80 disabled:opacity-40"
+                      >
+                        <Ban className="w-3 h-3" /> Ban Selected
+                      </button>
+                      <button
+                        onClick={handleBulkDelete}
+                        disabled={actionLoading === "bulk"}
+                        className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs bg-destructive/20 text-destructive hover:opacity-80 disabled:opacity-40"
+                      >
+                        <Trash2 className="w-3 h-3" /> Delete Selected
+                      </button>
+                    </div>
+                  )}
+                </div>
                 {users.map(u => (
                   <div key={u.id} className={`glass-strong rounded-xl p-4 flex items-center gap-3 ${u.is_shadow_banned ? "border border-destructive/30 opacity-60" : ""}`}>
+                    <button onClick={() => toggleSelect(u.id)} className="flex-shrink-0 text-muted-foreground hover:text-foreground">
+                      {selectedUsers.has(u.id)
+                        ? <CheckSquare className="w-4 h-4 text-blossom" />
+                        : <Square className="w-4 h-4" />}
+                    </button>
                     <div className="flex-1 min-w-0">
                       <div className="font-body text-foreground text-sm font-medium truncate">
                         {u.name} {u.is_shadow_banned && <span className="text-destructive text-xs">(banned)</span>}

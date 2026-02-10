@@ -1,8 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { Resend } from "npm:resend@4.0.0";
-
-const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -28,6 +25,15 @@ const handler = async (req: Request): Promise<Response> => {
     if (!email.endsWith("@iimshillong.ac.in")) {
       return new Response(JSON.stringify({ error: "Only @iimshillong.ac.in emails allowed" }), {
         status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const brevoApiKey = Deno.env.get("BREVO_API_KEY");
+    if (!brevoApiKey) {
+      console.error("BREVO_API_KEY not configured");
+      return new Response(JSON.stringify({ error: "Email service not configured" }), {
+        status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -60,39 +66,50 @@ const handler = async (req: Request): Promise<Response> => {
       });
     }
 
-    // Send via Resend
-    const { data, error: sendError } = await resend.emails.send({
-      from: "WALTZ <onboarding@resend.dev>",
-      to: [email],
-      subject: "🌸 Your WALTZ Verification Code",
-      html: `
-        <div style="font-family: 'Georgia', serif; max-width: 420px; margin: 0 auto; padding: 40px 30px; background: linear-gradient(135deg, #1a0a0f 0%, #2d0a1a 50%, #1a0a0f 100%); border-radius: 24px;">
-          <div style="text-align: center; margin-bottom: 30px;">
-            <h1 style="font-size: 48px; font-weight: bold; background: linear-gradient(135deg, #ffb4c2, #e87a9f); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin: 0; letter-spacing: 4px;">WALTZ</h1>
-            <p style="color: #8a7a7f; font-size: 13px; margin-top: 8px;">The music is about to start 🌸</p>
+    // Send via Brevo Transactional Email API
+    const brevoRes = await fetch("https://api.brevo.com/v3/smtp/email", {
+      method: "POST",
+      headers: {
+        "api-key": brevoApiKey,
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+      },
+      body: JSON.stringify({
+        sender: { name: "WALTZ", email: "noreply@ipmatexam.com" },
+        to: [{ email }],
+        subject: "🌸 Your WALTZ Verification Code",
+        htmlContent: `
+          <div style="font-family: 'Georgia', serif; max-width: 420px; margin: 0 auto; padding: 40px 30px; background: linear-gradient(135deg, #1a0a0f 0%, #2d0a1a 50%, #1a0a0f 100%); border-radius: 24px;">
+            <div style="text-align: center; margin-bottom: 30px;">
+              <h1 style="font-size: 48px; font-weight: bold; background: linear-gradient(135deg, #ffb4c2, #e87a9f); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin: 0; letter-spacing: 4px;">WALTZ</h1>
+              <p style="color: #8a7a7f; font-size: 13px; margin-top: 8px;">The music is about to start 🌸</p>
+            </div>
+            <div style="background: rgba(255,180,194,0.08); border: 1px solid rgba(255,180,194,0.15); border-radius: 16px; padding: 24px; text-align: center; margin-bottom: 24px;">
+              <p style="color: #c9b9be; font-size: 13px; margin: 0 0 16px 0;">Your verification code is</p>
+              <div style="font-size: 36px; font-weight: bold; letter-spacing: 10px; color: #ffb4c2; font-family: monospace; padding: 12px; background: rgba(255,180,194,0.05); border-radius: 12px;">${otp}</div>
+              <p style="color: #6a5a5f; font-size: 11px; margin: 16px 0 0 0;">This code expires in 10 minutes</p>
+            </div>
+            <p style="color: #6a5a5f; font-size: 11px; text-align: center; margin: 0;">
+              If you didn't request this, you can safely ignore this email.<br/>
+              Only @iimshillong.ac.in emails allowed. No exceptions.
+            </p>
           </div>
-          <div style="background: rgba(255,180,194,0.08); border: 1px solid rgba(255,180,194,0.15); border-radius: 16px; padding: 24px; text-align: center; margin-bottom: 24px;">
-            <p style="color: #c9b9be; font-size: 13px; margin: 0 0 16px 0;">Your verification code is</p>
-            <div style="font-size: 36px; font-weight: bold; letter-spacing: 10px; color: #ffb4c2; font-family: monospace; padding: 12px; background: rgba(255,180,194,0.05); border-radius: 12px;">${otp}</div>
-            <p style="color: #6a5a5f; font-size: 11px; margin: 16px 0 0 0;">This code expires in 10 minutes</p>
-          </div>
-          <p style="color: #6a5a5f; font-size: 11px; text-align: center; margin: 0;">
-            If you didn't request this, you can safely ignore this email.<br/>
-            Only @iimshillong.ac.in emails allowed. No exceptions.
-          </p>
-        </div>
-      `,
+        `,
+      }),
     });
 
-    if (sendError) {
-      console.error("Resend error:", sendError);
+    if (!brevoRes.ok) {
+      const errBody = await brevoRes.text();
+      console.error("Brevo error:", brevoRes.status, errBody);
       return new Response(JSON.stringify({ error: "Failed to send email" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    console.log("OTP email sent:", data?.id);
+    const brevoData = await brevoRes.json();
+    console.log("OTP email sent via Brevo:", brevoData.messageId);
+
     return new Response(JSON.stringify({ success: true }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
