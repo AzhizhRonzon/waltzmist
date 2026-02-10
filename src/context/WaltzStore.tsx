@@ -149,7 +149,7 @@ interface WaltzStoreContextType {
   signUp: (email: string, password: string) => Promise<{ error: string | null }>;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
-  signInWithOtp: (email: string) => Promise<{ error: string | null }>;
+  
   completeProfile: (data: Record<string, any>) => Promise<void>;
   updateProfile: (data: Record<string, any>) => Promise<void>;
 
@@ -402,10 +402,7 @@ export const WaltzStoreProvider = ({ children }: { children: ReactNode }) => {
 
   const signOut = async () => { await supabase.auth.signOut(); };
 
-  const signInWithOtp = async (email: string) => {
-    const { error } = await supabase.auth.signInWithOtp({ email, options: { emailRedirectTo: window.location.origin } });
-    return { error: error?.message ?? null };
-  };
+
 
   const completeProfile = async (data: Record<string, any>) => {
     if (!session?.user) return;
@@ -670,7 +667,7 @@ export const WaltzStoreProvider = ({ children }: { children: ReactNode }) => {
     <WaltzStoreContext.Provider
       value={{
         session, isLoggedIn, hasProfile, myProfile, loading, dataLoading,
-        signUp, signIn, signOut, signInWithOtp, completeProfile, updateProfile,
+        signUp, signIn, signOut, completeProfile, updateProfile,
         discoverQueue, swipeLeft, swipeRight, swipesRemaining,
         matches, conversations, sendMessage, loadConversation, loadMoreMessages, markMessagesRead, hasMoreMessages,
         nudgesSent, nudgesReceived, canNudgeToday, sendNudge, markNudgeSeen,

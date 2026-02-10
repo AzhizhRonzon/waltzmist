@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import FallingPetals from "../components/FallingPetals";
@@ -16,10 +17,10 @@ const EMPTY_QUIPS = [
 const MatchesPage = () => {
   const navigate = useNavigate();
   const { matches, dataLoading } = useWaltzStore();
-  const emptyQuip = EMPTY_QUIPS[Math.floor(Math.random() * EMPTY_QUIPS.length)];
+  const [emptyQuip] = useState(() => EMPTY_QUIPS[Math.floor(Math.random() * EMPTY_QUIPS.length)]);
 
   return (
-    <div className="min-h-screen breathing-bg flex flex-col relative pb-20">
+    <div className="h-[100dvh] breathing-bg flex flex-col relative pb-20 overflow-hidden">
       <FallingPetals count={6} />
 
       <header className="relative z-20 px-3 sm:px-5 pt-3 sm:pt-5 pb-2">
@@ -37,7 +38,7 @@ const MatchesPage = () => {
         </div>
       </header>
 
-      <div className="flex-1 relative z-10 px-3 sm:px-5 mt-3 sm:mt-4">
+      <div className="flex-1 relative z-10 px-3 sm:px-5 mt-3 sm:mt-4 overflow-y-auto">
         {dataLoading ? (
           <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
             {[0,1,2,3].map(i => <SkeletonMatchCard key={i} />)}

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import FallingPetals from "../components/FallingPetals";
@@ -19,10 +20,10 @@ const WhispersPage = () => {
   const { matches, nudgesReceived, markNudgeSeen, dataLoading } = useWaltzStore();
   const hasMatches = matches.length > 0;
   const unseenNudges = nudgesReceived.filter((n) => !n.seen);
-  const emptyMessage = WITTY_EMPTY_STATES[Math.floor(Math.random() * WITTY_EMPTY_STATES.length)];
+  const [emptyMessage] = useState(() => WITTY_EMPTY_STATES[Math.floor(Math.random() * WITTY_EMPTY_STATES.length)]);
 
   return (
-    <div className="min-h-screen breathing-bg flex flex-col relative pb-20">
+    <div className="h-[100dvh] breathing-bg flex flex-col relative pb-20 overflow-hidden">
       <FallingPetals count={6} />
 
       <header className="relative z-20 px-3 sm:px-5 pt-3 sm:pt-5 pb-2">
@@ -44,7 +45,7 @@ const WhispersPage = () => {
         </div>
       </header>
 
-      <div className="flex-1 relative z-10 px-3 sm:px-5 mt-3 sm:mt-4 space-y-4">
+      <div className="flex-1 relative z-10 px-3 sm:px-5 mt-3 sm:mt-4 space-y-4 overflow-y-auto">
         {unseenNudges.length > 0 && (
           <div>
             <h2 className="font-display text-sm text-blossom mb-2 flex items-center gap-1.5">
