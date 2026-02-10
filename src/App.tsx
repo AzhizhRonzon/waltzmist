@@ -26,6 +26,7 @@ const NotFound = lazy(() => import("./pages/NotFound"));
 const ProfilePage = lazy(() => import("./pages/Profile"));
 const CrushesPage = lazy(() => import("./pages/Crushes"));
 const WrappedPage = lazy(() => import("./pages/Wrapped"));
+const AdminPage = lazy(() => import("./pages/Admin"));
 
 const LoadingScreen = () => (
   <div className="min-h-screen breathing-bg flex flex-col items-center justify-center">
@@ -81,6 +82,7 @@ const AppContent = () => {
           <Route path="/chat/:matchId" element={authed ? <Chat /> : <Navigate to="/login" />} />
           <Route path="/crushes" element={authed ? <CrushesPage /> : <Navigate to="/login" />} />
           <Route path="/wrapped" element={authed ? <WrappedPage /> : <Navigate to="/login" />} />
+          <Route path="/admin" element={isLoggedIn ? <AdminPage /> : <Navigate to="/login" />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </Suspense>

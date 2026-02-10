@@ -2,7 +2,6 @@ import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Mail, ArrowLeft, KeyRound } from "lucide-react";
 import FallingPetals from "../components/FallingPetals";
-import { useWaltzStore } from "../context/WaltzStore";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
@@ -15,8 +14,15 @@ const LoginPage = () => {
   const [step, setStep] = useState<AuthStep>("form");
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [resending, setResending] = useState(false);
-  const [isNewUser, setIsNewUser] = useState(true);
   const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  const sendOtp = async (emailAddr: string) => {
+    const { data, error: fnError } = await supabase.functions.invoke("send-verification-email", {
+      body: { email: emailAddr },
+    });
+    if (fnError) throw new Error(fnError.message || "Failed to send code");
+    if (data?.error) throw new Error(data.error);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,23 +30,13 @@ const LoginPage = () => {
     const trimmedEmail = email.trim().toLowerCase();
     if (!trimmedEmail) { setError("Enter your college email."); return; }
     if (!trimmedEmail.endsWith("@iimshillong.ac.in")) {
-      setError("Sorry, this party is strictly for the Clouds. Only @iimshillong.ac.in emails allowed. 📚");
+      setError("Sorry, only @iimshillong.ac.in emails allowed. 📚");
       return;
     }
 
     setLoading(true);
     try {
-      const { error: otpError } = await supabase.auth.signInWithOtp({
-        email: trimmedEmail,
-        options: { emailRedirectTo: window.location.origin },
-      });
-
-      if (otpError) {
-        setError(otpError.message);
-        setLoading(false);
-        return;
-      }
-
+      await sendOtp(trimmedEmail);
       setStep("verify");
       toast({ title: "Code sent! 📧", description: "Check your email for the 6-digit code." });
     } catch (err: any) {
@@ -78,54 +74,50 @@ const LoginPage = () => {
     setLoading(true);
     setError("");
 
-    const trimmedEmail = email.trim().toLowerCase();
+    try {
+      const trimmedEmail = email.trim().toLowerCase();
 
-    // Try signup type first, then email type
-    const { data, error: verifyError } = await supabase.auth.verifyOtp({
-      email: trimmedEmail,
-      token: code,
-      type: "email",
-    });
-
-    if (verifyError) {
-      // Try signup type as fallback
-      const { data: signupData, error: signupError } = await supabase.auth.verifyOtp({
-        email: trimmedEmail,
-        token: code,
-        type: "signup",
+      // Call our custom verify-otp edge function
+      const { data, error: fnError } = await supabase.functions.invoke("verify-otp", {
+        body: { email: trimmedEmail, code },
       });
 
-      if (signupError) {
-        if (signupError.message.includes("expired")) {
-          setError("Code expired. Please request a new one.");
-        } else if (signupError.message.includes("invalid")) {
-          setError("Incorrect code. Please try again.");
-        } else {
-          setError(signupError.message);
-        }
+      if (fnError) {
+        setError(fnError.message || "Verification failed");
         setLoading(false);
         return;
       }
 
-      setIsNewUser(true);
-    } else {
-      setIsNewUser(false);
-    }
+      if (data?.error) {
+        setError(data.error);
+        setLoading(false);
+        return;
+      }
 
+      // Use the token_hash to establish a session client-side
+      const { error: verifyError } = await supabase.auth.verifyOtp({
+        token_hash: data.token_hash,
+        type: "magiclink",
+      });
+
+      if (verifyError) {
+        setError(verifyError.message || "Failed to sign in");
+        setLoading(false);
+        return;
+      }
+
+      toast({ title: "🌸 Verified!", description: "Welcome to WALTZ." });
+    } catch (err: any) {
+      setError(err.message || "Something went wrong");
+    }
     setLoading(false);
-    toast({ title: "🌸 Verified!", description: "Welcome to WALTZ." });
-    // Session is automatically set by supabase auth listener — routing handles redirect
   };
 
   const handleResendOTP = async () => {
     setResending(true);
     setError("");
     try {
-      const { error: resendError } = await supabase.auth.signInWithOtp({
-        email: email.trim().toLowerCase(),
-        options: { emailRedirectTo: window.location.origin },
-      });
-      if (resendError) throw resendError;
+      await sendOtp(email.trim().toLowerCase());
       toast({ title: "New code sent! 📧", description: "Check your inbox." });
       setOtp(["", "", "", "", "", ""]);
     } catch (err: any) {
