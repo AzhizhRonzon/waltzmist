@@ -25,8 +25,8 @@ const PhotoUpload = ({ userId, photos, onChange, maxPhotos = 4 }: PhotoUploadPro
       toast({ title: "Invalid file", description: "Please upload an image file.", variant: "destructive" });
       return;
     }
-    if (file.size > 10 * 1024 * 1024) {
-      toast({ title: "File too large", description: "Max 10MB per photo.", variant: "destructive" });
+    if (file.size > 1 * 1024 * 1024) {
+      toast({ title: "File too large", description: "Max 1MB per photo. Try a smaller image.", variant: "destructive" });
       return;
     }
 
