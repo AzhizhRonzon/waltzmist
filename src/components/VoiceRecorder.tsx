@@ -66,8 +66,12 @@ const VoiceRecorder = ({ userId, matchUuid, onSend }: VoiceRecorderProps) => {
       .upload(filePath, blob);
 
     if (!error) {
-      const { data } = supabase.storage.from("voice-notes").getPublicUrl(filePath);
-      onSend(data.publicUrl);
+      const { data: signedData, error: signedError } = await supabase.storage
+        .from("voice-notes")
+        .createSignedUrl(filePath, 86400); // 24 hour expiry
+      if (!signedError && signedData) {
+        onSend(signedData.signedUrl);
+      }
     }
     setUploading(false);
     setDuration(0);

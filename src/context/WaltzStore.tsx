@@ -312,7 +312,7 @@ export const WaltzStoreProvider = ({ children }: { children: ReactNode }) => {
 
       const [profileRes, allProfilesRes, swipesRes, matchesRes, nudgeSentRes, nudgeRecvRes, crushSentRes, crushRecvRes, blocksRes, todaySwipesRes] = await Promise.all([
         supabase.from("profiles").select("*").eq("id", userId).maybeSingle(),
-        supabase.from("profiles").select("*").eq("is_shadow_banned", false),
+        supabase.from("profiles").select("id, name, program, section, sex, age, maggi_metric, favorite_trip, party_spot, red_flag, photo_urls, is_shadow_banned, created_at, updated_at, email, email_verified").eq("is_shadow_banned", false),
         supabase.from("swipes").select("swiped_id").eq("swiper_id", userId),
         supabase.from("matches").select("*").or(`user1_id.eq.${userId},user2_id.eq.${userId}`),
         supabase.from("nudges").select("*").eq("sender_id", userId),

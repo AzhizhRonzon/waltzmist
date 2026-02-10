@@ -28,6 +28,7 @@ const SECTIONS = ["1", "2", "3", "4", "5", "6"];
 const ProfileSetup = ({ onComplete }: ProfileSetupProps) => {
   const { session } = useWaltzStore();
   const [step, setStep] = useState(0);
+  const [photoError, setPhotoError] = useState(false);
   const [form, setForm] = useState<ProfileFormData>({
     name: "",
     program: "",
@@ -51,11 +52,22 @@ const ProfileSetup = ({ onComplete }: ProfileSetupProps) => {
 
       {/* Photo upload */}
       {session?.user && (
-        <PhotoUpload
-          userId={session.user.id}
-          photos={form.photoUrls}
-          onChange={(urls) => setForm({ ...form, photoUrls: urls })}
-        />
+        <div>
+          <PhotoUpload
+            userId={session.user.id}
+            photos={form.photoUrls}
+            onChange={(urls) => { setForm({ ...form, photoUrls: urls }); setPhotoError(false); }}
+          />
+          {photoError && (
+            <motion.p
+              initial={{ opacity: 0, y: -4 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-maroon text-xs font-body mt-2 italic"
+            >
+              People around campus already see you — what's the point in hiding yourself among family? 📸
+            </motion.p>
+          )}
+        </div>
       )}
 
       <div>
@@ -222,12 +234,18 @@ const ProfileSetup = ({ onComplete }: ProfileSetupProps) => {
     </motion.div>,
   ];
 
+
   const canProceed = () => {
     if (step === 0) return form.name.trim() && form.program && form.sex && form.age >= 18;
     return true;
   };
 
   const handleNext = () => {
+    if (step === 0 && form.photoUrls.length === 0) {
+      setPhotoError(true);
+      return;
+    }
+    setPhotoError(false);
     if (step < steps.length - 1) {
       setStep(step + 1);
     } else {
