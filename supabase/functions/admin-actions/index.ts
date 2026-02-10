@@ -13,7 +13,6 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    // Verify the caller is an admin
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
@@ -26,7 +25,6 @@ const handler = async (req: Request): Promise<Response> => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
 
-    // Create a client with the user's token to check their role
     const userClient = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } },
     });
@@ -39,7 +37,6 @@ const handler = async (req: Request): Promise<Response> => {
       });
     }
 
-    // Check admin role using service client
     const adminClient = createClient(supabaseUrl, supabaseServiceKey);
     const { data: roleData } = await adminClient
       .from("user_roles")
@@ -55,11 +52,10 @@ const handler = async (req: Request): Promise<Response> => {
       });
     }
 
-    // Parse action
-    const { action, target_user_id, reason } = await req.json();
+    const { action, target_user_id, target_user_ids, reason } = await req.json();
 
-    if (!action || !target_user_id) {
-      return new Response(JSON.stringify({ error: "Missing action or target_user_id" }), {
+    if (!action) {
+      return new Response(JSON.stringify({ error: "Missing action" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -69,32 +65,54 @@ const handler = async (req: Request): Promise<Response> => {
 
     switch (action) {
       case "shadow_ban": {
-        const { error } = await adminClient
-          .from("profiles")
-          .update({ is_shadow_banned: true })
-          .eq("id", target_user_id);
+        if (!target_user_id) return new Response(JSON.stringify({ error: "Missing target_user_id" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        const { error } = await adminClient.from("profiles").update({ is_shadow_banned: true }).eq("id", target_user_id);
         if (error) throw error;
         result = { message: `User ${target_user_id} shadow banned` };
         break;
       }
 
       case "unshadow_ban": {
-        const { error } = await adminClient
-          .from("profiles")
-          .update({ is_shadow_banned: false })
-          .eq("id", target_user_id);
+        if (!target_user_id) return new Response(JSON.stringify({ error: "Missing target_user_id" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        const { error } = await adminClient.from("profiles").update({ is_shadow_banned: false }).eq("id", target_user_id);
         if (error) throw error;
         result = { message: `User ${target_user_id} unshadow banned` };
         break;
       }
 
       case "delete_user": {
-        // Delete profile first (cascading won't work here since profile.id references auth.users)
+        if (!target_user_id) return new Response(JSON.stringify({ error: "Missing target_user_id" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
         await adminClient.from("profiles").delete().eq("id", target_user_id);
-        // Delete from auth
         const { error } = await adminClient.auth.admin.deleteUser(target_user_id);
         if (error) throw error;
         result = { message: `User ${target_user_id} deleted` };
+        break;
+      }
+
+      case "bulk_delete_users": {
+        if (!target_user_ids || !Array.isArray(target_user_ids) || target_user_ids.length === 0) {
+          return new Response(JSON.stringify({ error: "Missing target_user_ids array" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        }
+        const errors: string[] = [];
+        for (const uid of target_user_ids) {
+          try {
+            await adminClient.from("profiles").delete().eq("id", uid);
+            await adminClient.auth.admin.deleteUser(uid);
+          } catch (e: any) {
+            errors.push(`${uid}: ${e.message}`);
+          }
+        }
+        result = { message: `Deleted ${target_user_ids.length - errors.length}/${target_user_ids.length} users`, errors: errors.length > 0 ? errors : undefined };
+        break;
+      }
+
+      case "bulk_shadow_ban": {
+        if (!target_user_ids || !Array.isArray(target_user_ids) || target_user_ids.length === 0) {
+          return new Response(JSON.stringify({ error: "Missing target_user_ids array" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        }
+        const { error } = await adminClient.from("profiles").update({ is_shadow_banned: true }).in("id", target_user_ids);
+        if (error) throw error;
+        result = { message: `${target_user_ids.length} users shadow banned` };
         break;
       }
 
