@@ -131,7 +131,7 @@ const ChatPage = () => {
   };
 
   return (
-    <div className="min-h-screen breathing-bg flex flex-col relative">
+    <div className="h-[100dvh] breathing-bg flex flex-col relative overflow-hidden">
       <FallingPetals count={4} />
 
       <header className="relative z-20 glass-strong border-b border-border/20">
@@ -258,7 +258,7 @@ const ChatPage = () => {
         )}
       </AnimatePresence>
 
-      <div className="relative z-20 px-3 sm:px-4 pb-4 sm:pb-6 pt-2">
+      <div className="relative z-20 px-3 sm:px-4 pb-[env(safe-area-inset-bottom,8px)] pt-2">
         <div className="glass-strong rounded-full flex items-center gap-2 px-3 sm:px-4 py-2 blossom-glow">
           <button onClick={() => setShowIcebreakers(!showIcebreakers)} className="p-1 rounded-full hover:bg-secondary/50 transition-colors flex-shrink-0">
             <Lightbulb className="w-4 h-4 text-muted-foreground" />

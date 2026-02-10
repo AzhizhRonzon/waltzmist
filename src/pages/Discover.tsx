@@ -88,7 +88,7 @@ const DiscoverPage = () => {
   };
 
   return (
-    <div className="min-h-screen breathing-bg flex flex-col relative pb-20">
+    <div className="h-[100dvh] breathing-bg flex flex-col relative pb-20 overflow-hidden">
       <FallingPetals count={6} />
       <ConfettiBurst active={showConfetti} />
       {loveBurst && <LoveBurst x={loveBurst.x} y={loveBurst.y} />}

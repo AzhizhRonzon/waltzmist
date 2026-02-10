@@ -1,52 +1,22 @@
 import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Mail, Lock, Eye, EyeOff, ArrowLeft, KeyRound } from "lucide-react";
+import { Mail, ArrowLeft, KeyRound } from "lucide-react";
 import FallingPetals from "../components/FallingPetals";
 import { useWaltzStore } from "../context/WaltzStore";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
-type AuthStep = "form" | "verify" | "success";
+type AuthStep = "form" | "verify";
 
 const LoginPage = () => {
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [isSignUp, setIsSignUp] = useState(true);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState<AuthStep>("form");
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [resending, setResending] = useState(false);
+  const [isNewUser, setIsNewUser] = useState(true);
   const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
-  const { signIn } = useWaltzStore();
-
-  const generateOTP = () => Math.floor(100000 + Math.random() * 900000).toString();
-
-  const sendVerificationEmail = async (targetEmail: string) => {
-    const code = generateOTP();
-    localStorage.setItem(`waltz_otp_${targetEmail}`, JSON.stringify({
-      code,
-      expiresAt: Date.now() + 10 * 60 * 1000,
-    }));
-
-    const { data, error } = await supabase.functions.invoke("send-verification-email", {
-      body: { email: targetEmail, otp: code },
-    });
-
-    if (error) {
-      console.error("Edge function error:", error);
-      throw new Error(error.message || "Failed to send verification email");
-    }
-
-    // Check if the response itself contains an error
-    if (data?.error) {
-      console.error("Email send error:", data.error);
-      throw new Error(data.error);
-    }
-
-    return data;
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,60 +24,29 @@ const LoginPage = () => {
     const trimmedEmail = email.trim().toLowerCase();
     if (!trimmedEmail) { setError("Enter your college email."); return; }
     if (!trimmedEmail.endsWith("@iimshillong.ac.in")) {
-      setError("Sorry, this party is strictly for the Clouds. Go study. 📚");
+      setError("Sorry, this party is strictly for the Clouds. Only @iimshillong.ac.in emails allowed. 📚");
       return;
     }
-    if (password.length < 6) { setError("Password must be at least 6 characters."); return; }
 
     setLoading(true);
-    if (isSignUp) {
-      try {
-        // Sign up with auto-confirm enabled
-        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-          email: trimmedEmail,
-          password,
-          options: { emailRedirectTo: window.location.origin },
-        });
+    try {
+      const { error: otpError } = await supabase.auth.signInWithOtp({
+        email: trimmedEmail,
+        options: { emailRedirectTo: window.location.origin },
+      });
 
-        if (signUpError) {
-          if (signUpError.message.includes("already registered")) {
-            setError("This email is already registered. Try signing in instead.");
-            setLoading(false);
-            return;
-          }
-          throw signUpError;
-        }
-
-        // Send OTP via Resend
-        try {
-          await sendVerificationEmail(trimmedEmail);
-          setStep("verify");
-          toast({ title: "Code sent! 📧", description: "Check your email for the 6-digit code." });
-        } catch (emailErr: any) {
-          console.error("Email sending failed:", emailErr);
-          // If email fails (e.g. domain not verified), still allow through with a warning
-          // The account is created, user can sign in
-          toast({
-            title: "⚠️ Email delivery issue",
-            description: "Account created but verification email couldn't be sent. You can sign in directly for now.",
-            variant: "destructive",
-          });
-          // Auto sign-in since auto-confirm is on
-          const result = await signIn(trimmedEmail, password);
-          if (result.error) {
-            setError(result.error);
-          }
-        }
-      } catch (err: any) {
-        setError(err.message || "Something went wrong. Try again.");
+      if (otpError) {
+        setError(otpError.message);
+        setLoading(false);
+        return;
       }
-      setLoading(false);
-    } else {
-      // Sign in
-      const result = await signIn(trimmedEmail, password);
-      setLoading(false);
-      if (result.error) { setError(result.error); return; }
+
+      setStep("verify");
+      toast({ title: "Code sent! 📧", description: "Check your email for the 6-digit code." });
+    } catch (err: any) {
+      setError(err.message || "Something went wrong. Try again.");
     }
+    setLoading(false);
   };
 
   const handleOtpChange = (index: number, value: string) => {
@@ -140,50 +79,53 @@ const LoginPage = () => {
     setError("");
 
     const trimmedEmail = email.trim().toLowerCase();
-    const stored = localStorage.getItem(`waltz_otp_${trimmedEmail}`);
 
-    if (!stored) {
-      setError("Verification expired. Please request a new code.");
-      setLoading(false);
-      return;
+    // Try signup type first, then email type
+    const { data, error: verifyError } = await supabase.auth.verifyOtp({
+      email: trimmedEmail,
+      token: code,
+      type: "email",
+    });
+
+    if (verifyError) {
+      // Try signup type as fallback
+      const { data: signupData, error: signupError } = await supabase.auth.verifyOtp({
+        email: trimmedEmail,
+        token: code,
+        type: "signup",
+      });
+
+      if (signupError) {
+        if (signupError.message.includes("expired")) {
+          setError("Code expired. Please request a new one.");
+        } else if (signupError.message.includes("invalid")) {
+          setError("Incorrect code. Please try again.");
+        } else {
+          setError(signupError.message);
+        }
+        setLoading(false);
+        return;
+      }
+
+      setIsNewUser(true);
+    } else {
+      setIsNewUser(false);
     }
 
-    const { code: storedCode, expiresAt } = JSON.parse(stored);
-
-    if (Date.now() > expiresAt) {
-      localStorage.removeItem(`waltz_otp_${trimmedEmail}`);
-      setError("Code expired. Please request a new one.");
-      setLoading(false);
-      return;
-    }
-
-    if (code !== storedCode) {
-      setError("Incorrect code. Please try again.");
-      setLoading(false);
-      return;
-    }
-
-    // OTP verified — sign in (auto-confirm is on, so account is ready)
-    localStorage.removeItem(`waltz_otp_${trimmedEmail}`);
-
-    // Mark email as verified in profiles (will happen after profile setup)
-    const result = await signIn(trimmedEmail, password);
     setLoading(false);
-
-    if (result.error) {
-      setError(result.error);
-      return;
-    }
-
-    setStep("success");
     toast({ title: "🌸 Verified!", description: "Welcome to WALTZ." });
+    // Session is automatically set by supabase auth listener — routing handles redirect
   };
 
   const handleResendOTP = async () => {
     setResending(true);
     setError("");
     try {
-      await sendVerificationEmail(email.trim().toLowerCase());
+      const { error: resendError } = await supabase.auth.signInWithOtp({
+        email: email.trim().toLowerCase(),
+        options: { emailRedirectTo: window.location.origin },
+      });
+      if (resendError) throw resendError;
       toast({ title: "New code sent! 📧", description: "Check your inbox." });
       setOtp(["", "", "", "", "", ""]);
     } catch (err: any) {
@@ -211,7 +153,7 @@ const LoginPage = () => {
             WALTZ
           </motion.h1>
           <p className="text-muted-foreground font-body text-sm">
-            {step === "verify" ? "Almost there 📧" : isSignUp ? "Join the Dance Floor 🌸" : "Welcome back 🌸"}
+            {step === "verify" ? "Almost there 📧" : "Join the Dance Floor 🌸"}
           </p>
         </div>
 
@@ -255,7 +197,7 @@ const LoginPage = () => {
               {error && (
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
                   className="flex items-start gap-2 text-destructive text-sm font-body glass rounded-xl p-3 border border-destructive/20">
-                  <Lock className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                  <Mail className="w-4 h-4 mt-0.5 flex-shrink-0" />
                   <span>{error}</span>
                 </motion.div>
               )}
@@ -324,38 +266,13 @@ const LoginPage = () => {
                   </div>
                 </div>
 
-                <div>
-                  <label className="text-xs text-muted-foreground font-body block mb-2 uppercase tracking-wider">
-                    Password
-                  </label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <input
-                      type={showPassword ? "text" : "password"}
-                      value={password}
-                      onChange={(e) => { setPassword(e.target.value); setError(""); }}
-                      placeholder="Min 6 characters"
-                      className="w-full bg-input rounded-xl pl-10 pr-12 py-3 text-foreground font-body placeholder:text-muted-foreground/40 focus:outline-none focus:ring-2 focus:ring-blossom/30"
-                      maxLength={100}
-                      autoComplete={isSignUp ? "new-password" : "current-password"}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                    >
-                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  </div>
-                </div>
-
                 {error && (
                   <motion.div
                     initial={{ opacity: 0, y: -5 }}
                     animate={{ opacity: 1, y: 0 }}
                     className="flex items-start gap-2 text-destructive text-sm font-body glass rounded-xl p-3 border border-destructive/20"
                   >
-                    <Lock className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                    <Mail className="w-4 h-4 mt-0.5 flex-shrink-0" />
                     <span>{error}</span>
                   </motion.div>
                 )}
@@ -371,25 +288,15 @@ const LoginPage = () => {
                     <span className="flex items-center justify-center gap-2">
                       <motion.span animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
                         className="inline-block w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full" />
-                      {isSignUp ? "Creating account..." : "Signing in..."}
+                      Sending code...
                     </span>
-                  ) : isSignUp ? "Enter the Dance Floor" : "Welcome Back"}
+                  ) : "Send Verification Code 📧"}
                 </motion.button>
-              </div>
-
-              <div className="text-center">
-                <button
-                  type="button"
-                  onClick={() => { setIsSignUp(!isSignUp); setError(""); }}
-                  className="text-sm text-blossom font-body hover:underline"
-                >
-                  {isSignUp ? "Already have an account? Sign In" : "New here? Sign Up"}
-                </button>
               </div>
 
               <p className="text-center text-xs text-muted-foreground/60 font-body">
                 Only @iimshillong.ac.in emails allowed.
-                <br />No exceptions. No LinkedIn profiles.
+                <br />No passwords needed — we'll email you a code.
               </p>
             </motion.form>
           )}
