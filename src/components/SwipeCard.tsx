@@ -100,7 +100,7 @@ const SwipeCard = ({ profile, onSwipeLeft, onSwipeRight, onSuperlike, onNudge, i
         {/* Photo area */}
         <div
           className="relative overflow-hidden transition-all duration-300 flex-shrink-0"
-          style={{ height: expanded ? "35%" : "50%" }}
+          style={{ height: expanded ? "45%" : "65%" }}
         >
           <AnimatePresence mode="wait">
             <motion.img
