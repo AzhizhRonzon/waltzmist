@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { motion, AnimatePresence, PanInfo } from "framer-motion";
-import { Heart, X, Sparkles, Zap, ChevronLeft, ChevronRight, Star } from "lucide-react";
+import { Heart, X, Sparkles, Zap, ChevronLeft, ChevronRight, Star, Moon, Sun } from "lucide-react";
 import type { ProfileData } from "../context/WaltzStore";
 
 interface SwipeCardProps {
@@ -54,16 +54,11 @@ const SwipeCard = ({ profile, onSwipeLeft, onSwipeRight, onSuperlike, onNudge, i
     const vx = info.velocity.x;
     const vy = info.velocity.y;
 
-    // Superlike: swipe up
     if (y < -80 && Math.abs(x) < 60 && onSuperlike) {
       onSuperlike();
-    }
-    // Right swipe: position or velocity
-    else if (x > 80 || vx > 500) {
+    } else if (x > 80 || vx > 500) {
       onSwipeRight();
-    }
-    // Left swipe: position or velocity
-    else if (x < -80 || vx < -500) {
+    } else if (x < -80 || vx < -500) {
       onSwipeLeft();
     }
 
@@ -78,6 +73,14 @@ const SwipeCard = ({ profile, onSwipeLeft, onSwipeRight, onSuperlike, onNudge, i
     if (dir === "right") return { x: 400, rotate: 20, opacity: 0 };
     return { x: -400, rotate: -20, opacity: 0 };
   })();
+
+  // Maggi metric label (night owl vs early bird)
+  const getMaggiLabel = () => {
+    if (profile.maggiMetric <= 25) return "Early Bird 🌅";
+    if (profile.maggiMetric <= 50) return "Balanced ⚖️";
+    if (profile.maggiMetric <= 75) return "Night Owl 🦉";
+    return "Vampire Hours 🧛";
+  };
 
   return (
     <motion.div
@@ -97,7 +100,7 @@ const SwipeCard = ({ profile, onSwipeLeft, onSwipeRight, onSuperlike, onNudge, i
         {/* Photo area */}
         <div
           className="relative overflow-hidden transition-all duration-300 flex-shrink-0"
-          style={{ height: expanded ? "40%" : "55%" }}
+          style={{ height: expanded ? "35%" : "50%" }}
         >
           <AnimatePresence mode="wait">
             <motion.img
@@ -115,47 +118,26 @@ const SwipeCard = ({ profile, onSwipeLeft, onSwipeRight, onSuperlike, onNudge, i
           </AnimatePresence>
           <div className="absolute inset-0 bg-gradient-to-t from-card via-transparent to-transparent" />
 
-          {/* Photo carousel dots + controls */}
+          {/* Photo progress bar (Instagram-style) */}
           {hasMultiplePhotos && (
             <>
-              <div className="absolute top-3 left-0 right-0 flex justify-center gap-1.5 z-10">
+              <div className="absolute top-2 left-2 right-2 flex gap-1 z-10">
                 {profile.photos.map((_, i) => (
-                  <button
-                    key={i}
-                    onClick={(e) => { e.stopPropagation(); setPhotoIndex(i); }}
-                    className="h-1 rounded-full transition-all duration-300"
-                    style={{
-                      width: i === photoIndex ? 20 : 8,
-                      background: i === photoIndex
-                        ? "hsl(var(--blossom))"
-                        : "hsl(var(--foreground) / 0.4)",
-                    }}
-                  />
+                  <div key={i} className="flex-1 h-[3px] rounded-full overflow-hidden" style={{ background: "hsl(var(--foreground) / 0.2)" }}>
+                    <div
+                      className="h-full rounded-full transition-all duration-300"
+                      style={{
+                        width: i < photoIndex ? "100%" : i === photoIndex ? "100%" : "0%",
+                        background: i <= photoIndex ? "hsl(var(--blossom))" : "transparent",
+                      }}
+                    />
+                  </div>
                 ))}
               </div>
 
               {/* Tap zones for prev/next */}
               <button onClick={prevPhoto} className="absolute left-0 top-0 bottom-0 w-1/3 z-10" aria-label="Previous photo" />
               <button onClick={nextPhoto} className="absolute right-0 top-0 bottom-0 w-1/3 z-10" aria-label="Next photo" />
-
-              {/* Arrow indicators */}
-              <div className="absolute bottom-14 left-2 z-10">
-                <button onClick={prevPhoto} className="glass rounded-full p-1 opacity-60 hover:opacity-100 transition-opacity">
-                  <ChevronLeft className="w-4 h-4 text-foreground" />
-                </button>
-              </div>
-              <div className="absolute bottom-14 right-2 z-10">
-                <button onClick={nextPhoto} className="glass rounded-full p-1 opacity-60 hover:opacity-100 transition-opacity">
-                  <ChevronRight className="w-4 h-4 text-foreground" />
-                </button>
-              </div>
-
-              {/* Photo counter */}
-              <div className="absolute bottom-14 left-1/2 -translate-x-1/2 z-10 glass rounded-full px-2 py-0.5">
-                <span className="text-[10px] font-body text-foreground/80">
-                  {photoIndex + 1} / {profile.photos.length}
-                </span>
-              </div>
             </>
           )}
 
@@ -214,80 +196,87 @@ const SwipeCard = ({ profile, onSwipeLeft, onSwipeRight, onSuperlike, onNudge, i
           )}
 
           {/* Name overlay */}
-          <div className="absolute bottom-4 left-5 right-5 z-10">
-            <h2 className="text-2xl sm:text-3xl font-display font-bold text-foreground">{profile.name}</h2>
-            <p className="text-xs sm:text-sm text-muted-foreground font-body mt-0.5">
-              {profile.batch}{profile.section ? ` · Section ${profile.section}` : ""}
-            </p>
+          <div className="absolute bottom-3 left-4 right-4 z-10">
+            <div className="flex items-end justify-between">
+              <div>
+                <h2 className="text-xl sm:text-2xl font-display font-bold text-foreground leading-tight">{profile.name}, {profile.age}</h2>
+                <p className="text-[11px] sm:text-xs text-muted-foreground font-body mt-0.5">
+                  {profile.batch}{profile.section ? ` · Sec ${profile.section}` : ""}
+                </p>
+              </div>
+              {hasMultiplePhotos && (
+                <span className="text-[9px] font-body text-foreground/50 glass rounded-full px-2 py-0.5 mb-1">
+                  {photoIndex + 1}/{profile.photos.length}
+                </span>
+              )}
+            </div>
           </div>
         </div>
 
         {/* Scrollable info area */}
         <div
           ref={scrollRef}
-          className="flex-1 p-4 sm:p-5 flex flex-col gap-2.5 overflow-y-auto overscroll-contain scrollbar-hide"
+          className="flex-1 p-3 sm:p-4 flex flex-col gap-2 overflow-y-auto overscroll-contain scrollbar-hide"
           onTouchStart={() => setExpanded(true)}
           onTouchEnd={() => setTimeout(() => setExpanded(false), 2000)}
         >
-          <div className="glass rounded-2xl p-3">
-            <p className="text-[11px] text-muted-foreground uppercase tracking-widest mb-1 font-body">Waltz-O-Meter</p>
-            <p className="text-sm font-body text-blossom-soft">
-              "{profile.compatibility}% Match — You both hate 8 AMs."
-            </p>
-          </div>
-
-          <div className="flex items-center justify-between glass rounded-2xl p-3">
-            <span className="text-[10px] sm:text-xs text-muted-foreground font-body">Silent Slurper</span>
-            <div className="flex-1 mx-2 sm:mx-3 h-1.5 rounded-full bg-secondary overflow-hidden">
+          {/* Night Owl / Early Bird meter */}
+          <div className="glass rounded-xl p-2.5 flex items-center gap-2">
+            <Sun className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
+            <div className="flex-1 h-1.5 rounded-full bg-secondary overflow-hidden">
               <motion.div
                 className="h-full rounded-full"
                 initial={{ width: 0 }}
                 animate={{ width: `${profile.maggiMetric}%` }}
                 transition={{ duration: 0.8, ease: "easeOut" }}
                 style={{
-                  background: "linear-gradient(90deg, hsl(var(--blossom)), hsl(var(--glow)))"
+                  background: "linear-gradient(90deg, hsl(45 90% 65%), hsl(260 60% 55%))"
                 }}
               />
             </div>
-            <span className="text-[10px] sm:text-xs text-muted-foreground font-body">Philosophy Spouter</span>
+            <Moon className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
+            <span className="text-[10px] text-muted-foreground font-body whitespace-nowrap">{getMaggiLabel()}</span>
           </div>
 
           <div className="grid grid-cols-2 gap-2">
-            <div className="glass rounded-2xl p-3">
-              <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-body">Fav Trip</p>
-              <p className="text-xs sm:text-sm text-foreground font-body mt-0.5 truncate">{profile.favoriteTrip || "—"}</p>
-            </div>
-            <div className="glass rounded-2xl p-3">
-              <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-body">Party Spot</p>
-              <p className="text-xs sm:text-sm text-foreground font-body mt-0.5 truncate">{profile.partySpot || "—"}</p>
-            </div>
+            {profile.favoriteTrip && (
+              <div className="glass rounded-xl p-2.5">
+                <p className="text-[9px] text-muted-foreground uppercase tracking-widest font-body">🏔 Fav Trip</p>
+                <p className="text-xs text-foreground font-body mt-0.5 line-clamp-2">{profile.favoriteTrip}</p>
+              </div>
+            )}
+            {profile.partySpot && (
+              <div className="glass rounded-xl p-2.5">
+                <p className="text-[9px] text-muted-foreground uppercase tracking-widest font-body">🎉 Party Spot</p>
+                <p className="text-xs text-foreground font-body mt-0.5 line-clamp-2">{profile.partySpot}</p>
+              </div>
+            )}
           </div>
 
           {profile.redFlag && (
-            <div className="glass rounded-2xl p-3 border border-maroon/20">
-              <p className="text-[10px] text-maroon uppercase tracking-widest font-body">🚩 Red Flag</p>
-              <p className="text-xs sm:text-sm text-foreground font-body mt-0.5 italic">
-                "I honestly believe that {profile.redFlag}"
+            <div className="glass rounded-xl p-2.5 border border-maroon/20">
+              <p className="text-[9px] text-maroon uppercase tracking-widest font-body">🚩 Red Flag</p>
+              <p className="text-xs text-foreground font-body mt-0.5 italic line-clamp-2">
+                "{profile.redFlag}"
               </p>
             </div>
           )}
 
-          {/* Compatibility detail easter egg */}
+          {/* Compatibility easter egg */}
           {profile.compatibility >= 85 && (
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="glass rounded-2xl p-3 border border-blossom/20 text-center"
+              className="glass rounded-xl p-2.5 border border-blossom/20 text-center"
             >
-              <p className="text-xs text-blossom font-body">
+              <p className="text-[10px] text-blossom font-body">
                 ✨ The stars align — this one's special ✨
               </p>
             </motion.div>
           )}
 
-          {/* Swipe hint for new users */}
-          <p className="text-[9px] text-muted-foreground/40 text-center font-body mt-1">
-            ← Swipe left to pass · Swipe right to vibe → · Swipe up to superlike ⭐
+          <p className="text-[8px] text-muted-foreground/30 text-center font-body mt-auto pt-1">
+            ← Pass · Like → · ⭐ Swipe up
           </p>
         </div>
       </div>
@@ -315,7 +304,6 @@ export const SwipeActions = ({
       <X className="w-6 h-6 sm:w-7 sm:h-7 text-muted-foreground" />
     </motion.button>
 
-    {/* Superlike button */}
     {onSuperlike && (
       <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={onSuperlike}
         className="w-12 h-12 sm:w-14 sm:h-14 rounded-full flex items-center justify-center border-2 transition-all"

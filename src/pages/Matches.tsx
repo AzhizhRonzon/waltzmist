@@ -66,11 +66,11 @@ const MatchesPage = () => {
                 onClick={() => navigate(`/chat/${match.id}`)}
                 className="glass rounded-2xl overflow-hidden group hover:blossom-glow transition-all border border-transparent hover:border-blossom/20 relative">
                 <div className="relative aspect-[3/4]">
-                  <img src={match.profile.photos[0]} alt={match.profile.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
+                  <img src={match.profile.photos[0]} alt={match.profile.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" onError={(e) => { (e.target as HTMLImageElement).src = `https://api.dicebear.com/9.x/avataaars/svg?seed=${match.id}`; }} />
                   <div className="absolute inset-0 bg-gradient-to-t from-card via-transparent to-transparent" />
                   <div className="absolute bottom-2.5 sm:bottom-3 left-2.5 sm:left-3 right-2.5 sm:right-3">
                     <h3 className="font-display text-sm sm:text-lg text-foreground leading-tight truncate">{match.profile.name}</h3>
-                    <p className="text-[9px] sm:text-[11px] text-muted-foreground font-body">{match.profile.batch}</p>
+                    <p className="text-[9px] sm:text-[11px] text-muted-foreground font-body">{match.profile.batch}{match.lastMessage ? "" : " · New match! 🌸"}</p>
                   </div>
                   {match.unread > 0 && (
                     <div className="absolute top-2 right-2 w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold text-primary-foreground"

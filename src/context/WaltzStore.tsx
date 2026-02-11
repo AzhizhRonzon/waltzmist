@@ -94,6 +94,9 @@ export const CRUSH_HINTS = [
 
 // ─── Helpers ─────────────────────────────────────────────────────
 function dbProfileToApp(row: Tables<'profiles'>, compatibility = 50): ProfileData {
+  const fallbackAvatar = row.sex === "female"
+    ? `https://api.dicebear.com/9.x/avataaars/svg?seed=${row.id}&top=longHair&accessories=prescription02`
+    : `https://api.dicebear.com/9.x/avataaars/svg?seed=${row.id}&top=shortHair&facialHair=beardLight`;
   return {
     id: row.id,
     name: row.name,
@@ -103,7 +106,7 @@ function dbProfileToApp(row: Tables<'profiles'>, compatibility = 50): ProfileDat
     age: row.age,
     photos: (row.photo_urls && row.photo_urls.length > 0)
       ? row.photo_urls
-      : [`https://api.dicebear.com/9.x/avataaars/svg?seed=${row.id}`],
+      : [fallbackAvatar],
     maggiMetric: row.maggi_metric ?? 50,
     favoriteTrip: row.favorite_trip || "",
     partySpot: row.party_spot || "",

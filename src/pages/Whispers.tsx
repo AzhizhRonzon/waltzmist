@@ -101,7 +101,7 @@ const WhispersPage = () => {
                 onClick={() => navigate(`/chat/${match.id}`)}
                 className={`w-full glass rounded-2xl p-3 sm:p-4 flex items-center gap-3 hover:border-blossom/20 transition-all text-left border ${match.unread > 0 ? "border-blossom/20 blossom-glow" : "border-transparent"}`}>
                 <div className="relative flex-shrink-0">
-                  <img src={match.profile.photos[0]} alt={match.profile.name} className="w-12 h-12 sm:w-14 sm:h-14 rounded-full object-cover border-2 border-blossom/20" loading="lazy" />
+                  <img src={match.profile.photos[0]} alt={match.profile.name} className="w-12 h-12 sm:w-14 sm:h-14 rounded-full object-cover border-2 border-blossom/20" loading="lazy" onError={(e) => { (e.target as HTMLImageElement).src = `https://api.dicebear.com/9.x/avataaars/svg?seed=${match.id}`; }} />
                   {match.unread > 0 && (
                     <div className="absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full bg-blossom animate-pulse" />
                   )}

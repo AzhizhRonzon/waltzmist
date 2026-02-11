@@ -14,7 +14,7 @@ const CrushesPage = () => {
     guessCrush
   } = useWaltzStore();
   const [showSendModal, setShowSendModal] = useState(false);
-  return <div className="min-h-screen breathing-bg flex flex-col relative pb-20">
+  return <div className="h-[100dvh] breathing-bg flex flex-col relative pb-20 overflow-hidden">
       <FallingPetals count={6} />
 
       <header className="relative z-20 px-3 sm:px-5 pt-3 sm:pt-5 pb-2">
@@ -39,7 +39,7 @@ const CrushesPage = () => {
         </div>
       </header>
 
-      <div className="flex-1 relative z-10 px-3 sm:px-5 mt-2 space-y-6">
+      <div className="flex-1 relative z-10 px-3 sm:px-5 mt-2 space-y-6 overflow-y-auto">
         {/* Received Crushes */}
         <div>
           <h2 className="font-display text-base sm:text-lg text-foreground mb-3 flex items-center gap-2">

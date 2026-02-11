@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { X, Save, AlertTriangle, LogOut, Info } from "lucide-react";
+import { X, Save, AlertTriangle, LogOut, Info, Moon, Sun } from "lucide-react";
 import PhotoUpload from "./PhotoUpload";
 import { useWaltzStore } from "../context/WaltzStore";
 import { useNavigate } from "react-router-dom";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { toast } from "@/hooks/use-toast";
 
 interface ProfileEditModalProps {
   onClose: () => void;
@@ -12,11 +13,21 @@ interface ProfileEditModalProps {
 
 const PROGRAMS = ["PGP24", "PGP25", "PGPEx", "IPM", "PhD"];
 const SECTIONS = ["1", "2", "3", "4", "5", "6"];
+const MIN_NAME_LENGTH = 3;
+
+const getMaggiLabel = (v: number) => {
+  if (v <= 25) return "Early Bird 🌅";
+  if (v <= 50) return "Balanced ⚖️";
+  if (v <= 75) return "Night Owl 🦉";
+  return "Vampire Hours 🧛";
+};
 
 const ProfileEditModal = ({ onClose }: ProfileEditModalProps) => {
   const navigate = useNavigate();
   const { session, myProfile, updateProfile, signOut } = useWaltzStore();
   const [saving, setSaving] = useState(false);
+  const [nameError, setNameError] = useState("");
+  const [photoError, setPhotoError] = useState("");
   const [form, setForm] = useState({
     name: myProfile?.name || "",
     program: myProfile?.batch || "",
@@ -29,7 +40,15 @@ const ProfileEditModal = ({ onClose }: ProfileEditModalProps) => {
   });
 
   const handleSave = async () => {
-    if (!session?.user || !form.name.trim()) return;
+    if (!session?.user) return;
+    if (form.name.trim().length < MIN_NAME_LENGTH) {
+      setNameError("At least your first name, please! No professor here to cold-call you 😄");
+      return;
+    }
+    if (form.photoUrls.length === 0) {
+      setPhotoError("People around campus already see you — what's the point in hiding yourself among family? 📸");
+      return;
+    }
     setSaving(true);
     await updateProfile({
       name: form.name.trim(),
@@ -49,6 +68,11 @@ const ProfileEditModal = ({ onClose }: ProfileEditModalProps) => {
     await signOut();
     onClose();
     navigate("/");
+  };
+
+  const handlePhotoChange = (urls: string[]) => {
+    setForm({ ...form, photoUrls: urls });
+    if (urls.length > 0) setPhotoError("");
   };
 
   return (
@@ -78,12 +102,17 @@ const ProfileEditModal = ({ onClose }: ProfileEditModalProps) => {
           {/* Photos */}
           {session?.user && (
             <div>
-              <label className="text-sm text-muted-foreground font-body block mb-2">Photos</label>
+              <label className="text-sm text-muted-foreground font-body block mb-2">Photos <span className="text-maroon text-xs">(min 1 required)</span></label>
               <PhotoUpload
                 userId={session.user.id}
                 photos={form.photoUrls}
-                onChange={(urls) => setForm({ ...form, photoUrls: urls })}
+                onChange={handlePhotoChange}
               />
+              {photoError && (
+                <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-maroon text-xs font-body mt-2 italic">
+                  {photoError}
+                </motion.p>
+              )}
             </div>
           )}
 
@@ -93,10 +122,18 @@ const ProfileEditModal = ({ onClose }: ProfileEditModalProps) => {
             <input
               type="text"
               value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })}
+              onChange={(e) => {
+                setForm({ ...form, name: e.target.value });
+                if (e.target.value.trim().length >= MIN_NAME_LENGTH) setNameError("");
+              }}
               className="w-full bg-input rounded-xl px-4 py-3 text-foreground font-body placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-blossom/30"
               maxLength={50}
             />
+            {nameError && (
+              <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-maroon text-xs font-body mt-1 italic">
+                {nameError}
+              </motion.p>
+            )}
           </div>
 
           {/* Program */}
@@ -133,14 +170,19 @@ const ProfileEditModal = ({ onClose }: ProfileEditModalProps) => {
             </div>
           </div>
 
-          {/* Maggi Metric */}
+          {/* Night Owl / Early Bird */}
           <div className="glass rounded-2xl p-4">
-            <label className="text-sm text-muted-foreground font-body block mb-3">🍜 Late-Night Maggi Metric</label>
-            <input
-              type="range" min="0" max="100" value={form.maggiMetric}
-              onChange={(e) => setForm({ ...form, maggiMetric: Number(e.target.value) })}
-              className="w-full accent-blossom"
-            />
+            <label className="text-sm text-muted-foreground font-body block mb-3">🌙 Night Owl or Early Bird?</label>
+            <div className="flex items-center gap-2 mb-1">
+              <Sun className="w-4 h-4 text-muted-foreground" />
+              <input
+                type="range" min="0" max="100" value={form.maggiMetric}
+                onChange={(e) => setForm({ ...form, maggiMetric: Number(e.target.value) })}
+                className="w-full accent-blossom"
+              />
+              <Moon className="w-4 h-4 text-muted-foreground" />
+            </div>
+            <p className="text-center text-xs text-blossom font-body">{getMaggiLabel(form.maggiMetric)}</p>
           </div>
 
           {/* Trip */}
@@ -182,7 +224,7 @@ const ProfileEditModal = ({ onClose }: ProfileEditModalProps) => {
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={handleSave}
-            disabled={saving || !form.name.trim()}
+            disabled={saving || form.name.trim().length < MIN_NAME_LENGTH || form.photoUrls.length === 0}
             className="btn-waltz w-full flex items-center justify-center gap-2 disabled:opacity-40"
           >
             <Save className="w-4 h-4" />

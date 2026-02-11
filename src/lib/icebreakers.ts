@@ -29,9 +29,10 @@ export function getIcebreakers(myProfile: ProfileData | null, otherProfile: Prof
     prompts.push(`${otherProfile.partySpot} this weekend?`);
   }
 
-  // Maggi metric similarity
+  // Night owl similarity
   if (myProfile && Math.abs(myProfile.maggiMetric - otherProfile.maggiMetric) < 15) {
-    prompts.push("Our Maggi vibes are aligned — late-night noodle plans? 🍜");
+    const isNightOwl = otherProfile.maggiMetric > 60;
+    prompts.push(isNightOwl ? "We're both night owls — late-night walk to Police Bazaar? 🦉" : "Fellow early birds — sunrise at Umiam Lake? 🌅");
   }
 
   // High compatibility

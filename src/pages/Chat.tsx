@@ -146,7 +146,7 @@ const ChatPage = () => {
             <ArrowLeft className="w-5 h-5 text-foreground" />
           </button>
           <div className="relative">
-            <img src={match?.profile.photos[0] || ""} alt={match?.profile.name} className="w-10 h-10 rounded-full object-cover border-2 border-blossom/30" loading="lazy" />
+            <img src={match?.profile.photos[0] || ""} alt={match?.profile.name} className="w-10 h-10 rounded-full object-cover border-2 border-blossom/30" loading="lazy" onError={(e) => { (e.target as HTMLImageElement).src = `https://api.dicebear.com/9.x/avataaars/svg?seed=${match?.id}`; }} />
           </div>
           <div className="flex-1 min-w-0">
             <h3 className="font-display text-lg text-foreground leading-tight truncate">{match?.profile.name}</h3>
