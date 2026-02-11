@@ -36,6 +36,7 @@ const ProfileEditModal = ({ onClose }: ProfileEditModalProps) => {
     favoriteTrip: myProfile?.favoriteTrip || "",
     partySpot: myProfile?.partySpot || "",
     redFlag: myProfile?.redFlag || "",
+    instagramHandle: myProfile?.instagramHandle || "",
     photoUrls: myProfile?.photos?.filter(p => !p.includes("dicebear")) || [],
   });
 
@@ -58,6 +59,7 @@ const ProfileEditModal = ({ onClose }: ProfileEditModalProps) => {
       favoriteTrip: form.favoriteTrip,
       partySpot: form.partySpot,
       redFlag: form.redFlag,
+      instagramHandle: form.instagramHandle.trim().replace(/^@/, ""),
       photoUrls: form.photoUrls,
     });
     setSaving(false);
@@ -208,6 +210,22 @@ const ProfileEditModal = ({ onClose }: ProfileEditModalProps) => {
               className="w-full bg-input rounded-xl px-4 py-3 text-foreground font-body focus:outline-none focus:ring-2 focus:ring-blossom/30"
               maxLength={100}
             />
+          </div>
+
+          {/* Instagram */}
+          <div>
+            <label className="text-sm text-muted-foreground font-body block mb-2">Instagram Username (optional)</label>
+            <div className="flex items-center gap-2">
+              <span className="text-muted-foreground font-body text-sm">@</span>
+              <input
+                type="text" value={form.instagramHandle}
+                onChange={(e) => setForm({ ...form, instagramHandle: e.target.value.replace(/^@/, "") })}
+                placeholder="your_username"
+                className="w-full bg-input rounded-xl px-4 py-3 text-foreground font-body focus:outline-none focus:ring-2 focus:ring-blossom/30"
+                maxLength={30}
+              />
+            </div>
+            <p className="text-[10px] text-muted-foreground/60 font-body mt-1">Shown on your card so people can find you on IG</p>
           </div>
 
           {/* Red Flag */}

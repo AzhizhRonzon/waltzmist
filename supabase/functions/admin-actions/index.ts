@@ -270,12 +270,12 @@ const handler = async (req: Request): Promise<Response> => {
       case "export_users_csv": {
         const { data, error } = await adminClient
           .from("profiles")
-          .select("name, email, program, section, sex, age, is_shadow_banned, created_at")
+          .select("name, email, program, section, sex, age, is_shadow_banned, instagram_handle, created_at")
           .order("created_at", { ascending: false });
         if (error) throw error;
-        const header = "Name,Email,Program,Section,Sex,Age,Banned,Joined";
+        const header = "Name,Email,Program,Section,Sex,Age,Banned,Instagram,Joined";
         const rows = (data || []).map((u: any) =>
-          `"${u.name}","${u.email}","${u.program}","${u.section || ""}","${u.sex}","${u.age}","${u.is_shadow_banned}","${u.created_at}"`
+          `"${u.name}","${u.email}","${u.program}","${u.section || ""}","${u.sex}","${u.age}","${u.is_shadow_banned}","${u.instagram_handle || ""}","${u.created_at}"`
         );
         result = { csv: [header, ...rows].join("\n") };
         break;
