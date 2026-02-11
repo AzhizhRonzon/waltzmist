@@ -21,6 +21,7 @@ const CampusHeatMeter = () => {
   const stats = campusStats ? [
     { label: "Most Active Program", value: campusStats.mostActiveProgram || "—", icon: TrendingUp, color: "blossom" },
     { label: "Busiest Swipe Hour", value: formatHour(campusStats.busiestHour), icon: Clock, color: "glow" },
+    { label: "Total Likes", value: campusStats.totalLikes.toLocaleString(), icon: Heart, color: "blossom" },
     { label: "Prom Pact Count", value: String(campusStats.promPactCount), icon: Heart, color: "blossom" },
     { label: "Total Swipes", value: campusStats.totalSwipes.toLocaleString(), icon: Zap, color: "glow" },
     { label: "Match Rate", value: `${campusStats.matchRate}%`, icon: MessageCircle, color: "blossom" },

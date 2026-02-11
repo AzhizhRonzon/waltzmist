@@ -68,12 +68,21 @@ export interface CampusStats {
   busiestHour: number | null;
   topRedFlag: string;
   promPactCount: number;
+  totalLikes: number;
 }
 
 export interface SecretAdmirerHint {
   program: string;
   section: string | null;
   photo_hash: string;
+}
+
+export interface AdmirerProfile {
+  id: string;
+  photo_url: string;
+  program: string;
+  section: string | null;
+  name: string;
 }
 
 // ─── Constants ───────────────────────────────────────────────────
@@ -190,8 +199,11 @@ interface WaltzStoreContextType {
   campusStats: CampusStats | null;
   secretAdmirerCount: number;
   secretAdmirerHints: SecretAdmirerHint[];
+  admirerProfiles: AdmirerProfile[];
   fetchCampusStats: () => Promise<void>;
   fetchSecretAdmirers: () => Promise<void>;
+  fetchAdmirerProfiles: () => Promise<void>;
+  reSwipeAdmirer: (admirerId: string, direction: "like" | "dislike") => Promise<boolean>;
 
   getWrappedStats: () => {
     matchCount: number;
@@ -230,6 +242,7 @@ export const WaltzStoreProvider = ({ children }: { children: ReactNode }) => {
   const [campusStats, setCampusStats] = useState<CampusStats | null>(null);
   const [secretAdmirerCount, setSecretAdmirerCount] = useState(0);
   const [secretAdmirerHints, setSecretAdmirerHints] = useState<SecretAdmirerHint[]>([]);
+  const [admirerProfiles, setAdmirerProfiles] = useState<AdmirerProfile[]>([]);
   const [blockedIds, setBlockedIds] = useState<string[]>([]);
   const [swipesToday, setSwipesToday] = useState(0);
   const [hasMoreMessages, setHasMoreMessages] = useState<Record<string, boolean>>({});
@@ -306,6 +319,7 @@ export const WaltzStoreProvider = ({ children }: { children: ReactNode }) => {
     setCampusStats(null);
     setSecretAdmirerCount(0);
     setSecretAdmirerHints([]);
+    setAdmirerProfiles([]);
     setBlockedIds([]);
   };
 
@@ -587,10 +601,14 @@ export const WaltzStoreProvider = ({ children }: { children: ReactNode }) => {
 
   const guessCrush = async (crushId: string, guessId: string): Promise<boolean> => {
     const crush = crushesReceived.find(c => c.id === crushId);
-    if (!crush || crush.guessesLeft <= 0) return false;
+    if (!crush || crush.guessesLeft <= 0 || !session?.user) return false;
     const correct = guessId === crush.fromId;
     if (correct) {
       await supabase.from("crushes").update({ revealed: true, guesses_left: 0 }).eq("id", crushId);
+      // Create match from correct crush guess
+      await (supabase.rpc as any)("resolve_crush_match", { p_crush_id: crushId, p_user_id: session.user.id });
+      toast({ title: "🎉 It's a Match!", description: "You guessed right! Head to Whispers to chat." });
+      await fetchAllData(session.user.id);
     } else {
       await supabase.from("crushes").update({ guesses_left: crush.guessesLeft - 1 }).eq("id", crushId);
     }
@@ -639,6 +657,7 @@ export const WaltzStoreProvider = ({ children }: { children: ReactNode }) => {
         totalSwipes: d.total_swipes || 0,
         totalMatches: d.total_matches || 0,
         totalNudges: d.total_nudges || 0,
+        totalLikes: d.total_likes || 0,
         mostActiveProgram: d.most_active_program || "—",
         matchRate: d.match_rate || 0,
         busiestHour: d.busiest_hour,
@@ -656,6 +675,27 @@ export const WaltzStoreProvider = ({ children }: { children: ReactNode }) => {
     ]);
     if (!countRes.error) setSecretAdmirerCount(countRes.data || 0);
     if (!hintsRes.error && hintsRes.data) setSecretAdmirerHints(hintsRes.data as any || []);
+  };
+
+  const fetchAdmirerProfiles = async () => {
+    if (!session?.user) return;
+    const { data, error } = await (supabase.rpc as any)("get_secret_admirer_profiles", { p_user_id: session.user.id });
+    if (!error && data) setAdmirerProfiles(data as AdmirerProfile[]);
+  };
+
+  const reSwipeAdmirer = async (admirerId: string, direction: "like" | "dislike"): Promise<boolean> => {
+    if (!session?.user) return false;
+    const { error } = await (supabase.rpc as any)("re_swipe_admirer", {
+      p_user_id: session.user.id,
+      p_admirer_id: admirerId,
+      p_direction: direction,
+    });
+    if (error) {
+      toast({ title: "Action failed", description: error.message, variant: "destructive" });
+      return false;
+    }
+    await fetchAllData(session.user.id);
+    return true;
   };
 
   const getWrappedStats = useCallback(() => ({
@@ -679,7 +719,8 @@ export const WaltzStoreProvider = ({ children }: { children: ReactNode }) => {
         crushesSent, crushesReceived, sendCrush, guessCrush,
         reportUser, blockUser, unmatchUser, blockedIds,
         allProfiles,
-        campusStats, secretAdmirerCount, secretAdmirerHints, fetchCampusStats, fetchSecretAdmirers,
+        campusStats, secretAdmirerCount, secretAdmirerHints, admirerProfiles,
+        fetchCampusStats, fetchSecretAdmirers, fetchAdmirerProfiles, reSwipeAdmirer,
         getWrappedStats,
       }}
     >

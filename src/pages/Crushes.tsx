@@ -69,7 +69,8 @@ const CrushesPage = () => {
                 Keep being awesome! Someone's building up the courage. ✨
               </p>
               <p className="text-[10px] text-muted-foreground/40 font-body mt-3 italic">
-          </p>
+                Your admirer is closer than you think... 🌸
+              </p>
             </motion.div> : <div className="space-y-3">
               {crushesReceived.map(crush => <SecretAdmirerCard key={crush.id} crush={crush} onGuess={guessCrush} />)}
             </div>}

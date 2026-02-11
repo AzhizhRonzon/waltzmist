@@ -281,6 +281,16 @@ const handler = async (req: Request): Promise<Response> => {
         break;
       }
 
+      case "reset_swipes": {
+        if (!target_user_id) return errResp("Missing target_user_id");
+        const { error, count } = await adminClient.from("swipes").delete()
+          .eq("swiper_id", target_user_id)
+          .eq("direction", "dislike");
+        if (error) throw error;
+        result = { message: `Swipe history reset — ${count ?? 0} rejected profiles will reappear` };
+        break;
+      }
+
       default:
         return new Response(JSON.stringify({ error: `Unknown action: ${action}` }), {
           status: 400,

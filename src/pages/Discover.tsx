@@ -7,6 +7,7 @@ import FallingPetals from "../components/FallingPetals";
 import CountdownTimer from "../components/CountdownTimer";
 import BottomNav from "../components/BottomNav";
 import WhoLikedMe from "../components/WhoLikedMe";
+import SecretAdmirerRevealModal from "../components/SecretAdmirerRevealModal";
 import SkeletonCard from "../components/Skeletons";
 import { ConfettiBurst, LoveBurst } from "../components/EasterEggs";
 import { Sparkles, Settings, ShieldAlert } from "lucide-react";
@@ -26,6 +27,7 @@ const DiscoverPage = () => {
   const [showConfetti, setShowConfetti] = useState(false);
   const [loveBurst, setLoveBurst] = useState<{ x: number; y: number } | null>(null);
   const [superlikedId, setSuperlikedId] = useState<string | null>(null);
+  const [showAdmirerReveal, setShowAdmirerReveal] = useState(false);
 
   useEffect(() => { fetchSecretAdmirers(); }, []);
 
@@ -140,7 +142,7 @@ const DiscoverPage = () => {
 
       {/* Who liked me teaser */}
       <div className="relative z-10 px-3 sm:px-5">
-        <WhoLikedMe count={secretAdmirerCount} hints={secretAdmirerHints} />
+        <WhoLikedMe count={secretAdmirerCount} hints={secretAdmirerHints} onOpen={() => setShowAdmirerReveal(true)} />
       </div>
 
       <div className="flex-1 relative z-10 px-3 sm:px-5 pb-2" onDoubleClick={handleDoubleTap}>
@@ -225,6 +227,10 @@ const DiscoverPage = () => {
 
       <AnimatePresence>
         {showEditProfile && <ProfileEditModal onClose={() => setShowEditProfile(false)} />}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showAdmirerReveal && <SecretAdmirerRevealModal onClose={() => { setShowAdmirerReveal(false); fetchSecretAdmirers(); }} />}
       </AnimatePresence>
     </div>
   );

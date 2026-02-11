@@ -91,12 +91,15 @@ const ProfileEditModal = ({ onClose }: ProfileEditModalProps) => {
         onClick={(e) => e.stopPropagation()}
         className="glass-strong rounded-t-3xl sm:rounded-3xl p-6 w-full max-w-md max-h-[85vh] overflow-y-auto"
       >
-        <div className="flex items-center justify-between mb-5">
+        <div className="flex items-center justify-between mb-4">
           <h2 className="font-display text-xl text-foreground">Edit Profile</h2>
           <button onClick={onClose} className="p-1.5 rounded-full hover:bg-secondary/50">
             <X className="w-5 h-5 text-muted-foreground" />
           </button>
         </div>
+        <p className="text-[10px] text-blossom/70 font-body mb-5 italic leading-relaxed">
+          ⚠️ A recognizable name + at least one photo = your ticket to the dance floor. Without them, nobody will see your profile.
+        </p>
 
         <div className="space-y-5">
           {/* Photos */}
