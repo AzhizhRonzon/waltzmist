@@ -125,7 +125,7 @@ const WrappedPage = () => {
   ];
 
   return (
-    <div className="min-h-screen breathing-bg flex flex-col relative overflow-hidden">
+    <div className="h-[100dvh] breathing-bg flex flex-col relative overflow-hidden">
       <FallingPetals count={15} />
       <ConfettiBurst active={showConfetti} />
 

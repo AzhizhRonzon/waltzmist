@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronRight, AlertTriangle, Info } from "lucide-react";
+import { ChevronRight, AlertTriangle, Info, Moon, Sun } from "lucide-react";
 import PhotoUpload from "./PhotoUpload";
 import { useWaltzStore } from "../context/WaltzStore";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -25,10 +25,20 @@ interface ProfileSetupProps {
 const PROGRAMS = ["PGP24", "PGP25", "PGPEx", "IPM", "PhD"];
 const SECTIONS = ["1", "2", "3", "4", "5", "6"];
 
+const MIN_NAME_LENGTH = 3;
+
+const getMaggiLabel = (v: number) => {
+  if (v <= 25) return "Early Bird 🌅";
+  if (v <= 50) return "Balanced ⚖️";
+  if (v <= 75) return "Night Owl 🦉";
+  return "Vampire Hours 🧛";
+};
+
 const ProfileSetup = ({ onComplete }: ProfileSetupProps) => {
   const { session } = useWaltzStore();
   const [step, setStep] = useState(0);
   const [photoError, setPhotoError] = useState(false);
+  const [nameError, setNameError] = useState("");
   const [form, setForm] = useState<ProfileFormData>({
     name: "",
     program: "",
@@ -41,6 +51,13 @@ const ProfileSetup = ({ onComplete }: ProfileSetupProps) => {
     redFlag: "",
     photoUrls: [],
   });
+
+  const validateName = (name: string) => {
+    if (name.trim().length > 0 && name.trim().length < MIN_NAME_LENGTH) {
+      return "At least your first name, please! No professor here to cold-call you 😄";
+    }
+    return "";
+  };
 
   const steps = [
     // Step 0: Basics
@@ -75,11 +92,19 @@ const ProfileSetup = ({ onComplete }: ProfileSetupProps) => {
         <input
           type="text"
           value={form.name}
-          onChange={(e) => setForm({ ...form, name: e.target.value })}
+          onChange={(e) => {
+            setForm({ ...form, name: e.target.value });
+            setNameError(validateName(e.target.value));
+          }}
           placeholder="Your name"
           className="w-full bg-input rounded-xl px-4 py-3 text-foreground font-body placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-blossom/30"
           maxLength={50}
         />
+        {nameError && (
+          <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-maroon text-xs font-body mt-1 italic">
+            {nameError}
+          </motion.p>
+        )}
       </div>
 
       <div>
@@ -133,19 +158,20 @@ const ProfileSetup = ({ onComplete }: ProfileSetupProps) => {
       </div>
 
       <div className="glass rounded-2xl p-4">
-        <label className="text-sm text-muted-foreground font-body block mb-3">🍜 Late-Night Maggi Metric</label>
-        <input
-          type="range"
-          min="0"
-          max="100"
-          value={form.maggiMetric}
-          onChange={(e) => setForm({ ...form, maggiMetric: Number(e.target.value) })}
-          className="w-full accent-blossom"
-        />
-        <div className="flex justify-between mt-1">
-          <span className="text-xs text-muted-foreground">Silent Slurper</span>
-          <span className="text-xs text-muted-foreground">Philosophy Spouter</span>
+        <label className="text-sm text-muted-foreground font-body block mb-3">🌙 Night Owl or Early Bird?</label>
+        <div className="flex items-center gap-2 mb-1">
+          <Sun className="w-4 h-4 text-muted-foreground" />
+          <input
+            type="range"
+            min="0"
+            max="100"
+            value={form.maggiMetric}
+            onChange={(e) => setForm({ ...form, maggiMetric: Number(e.target.value) })}
+            className="w-full accent-blossom"
+          />
+          <Moon className="w-4 h-4 text-muted-foreground" />
         </div>
+        <p className="text-center text-xs text-blossom font-body mt-1">{getMaggiLabel(form.maggiMetric)}</p>
       </div>
 
       <div>
@@ -234,9 +260,8 @@ const ProfileSetup = ({ onComplete }: ProfileSetupProps) => {
     </motion.div>,
   ];
 
-
   const canProceed = () => {
-    if (step === 0) return form.name.trim() && form.program && form.sex && form.age >= 18;
+    if (step === 0) return form.name.trim().length >= MIN_NAME_LENGTH && form.program && form.sex && form.age >= 18;
     return true;
   };
 
@@ -245,7 +270,12 @@ const ProfileSetup = ({ onComplete }: ProfileSetupProps) => {
       setPhotoError(true);
       return;
     }
+    if (step === 0 && form.name.trim().length < MIN_NAME_LENGTH) {
+      setNameError("At least your first name, please! No professor here to cold-call you 😄");
+      return;
+    }
     setPhotoError(false);
+    setNameError("");
     if (step < steps.length - 1) {
       setStep(step + 1);
     } else {

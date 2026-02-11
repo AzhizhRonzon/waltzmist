@@ -39,7 +39,7 @@ const WhoLikedMe = ({ count, hints }: WhoLikedMeProps) => {
             }}
           >
             <span className="text-lg" style={{ filter: "blur(2px)" }}>
-              {hint.program === "PGP25" ? "👤" : hint.program === "PGP24" ? "👤" : "👤"}
+              {hint.program === "PGP25" ? "💃" : hint.program === "PGP24" ? "🕺" : "👤"}
             </span>
           </motion.div>
         ))}

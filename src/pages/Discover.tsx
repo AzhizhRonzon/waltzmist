@@ -31,7 +31,7 @@ const DiscoverPage = () => {
 
   const isPanicMode = useMemo(() => {
     const now = new Date();
-    const shutdown = new Date("2026-02-15T00:00:00+05:30");
+    const shutdown = new Date("2026-02-14T12:00:00+05:30");
     const hoursLeft = (shutdown.getTime() - now.getTime()) / (1000 * 60 * 60);
     return hoursLeft > 0 && hoursLeft <= 24;
   }, []);
