@@ -4,12 +4,13 @@ import FallingPetals from "../components/FallingPetals";
 import CountdownTimer from "../components/CountdownTimer";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Users, Heart, Zap, Sparkles, Shield, MessageCircle, Eye, Trophy, Clock } from "lucide-react";
+import { Users, Heart, Zap, Sparkles, Shield, MessageCircle, Eye, Trophy, Clock, ThumbsUp } from "lucide-react";
 import { getRandomQuip } from "../components/EasterEggs";
 interface LiveStats {
   totalUsers: number;
   totalMatches: number;
   totalSwipes: number;
+  totalLikes: number;
 }
 const TESTIMONIALS = [{
   text: "Found my Waltz partner in 3 swipes. The mess will never feel the same.",
@@ -41,7 +42,8 @@ const LandingPage = () => {
         setStats({
           totalUsers: countRes.count || 0,
           totalMatches: (statsRes.data as any)?.total_matches || 0,
-          totalSwipes: (statsRes.data as any)?.total_swipes || 0
+          totalSwipes: (statsRes.data as any)?.total_swipes || 0,
+          totalLikes: (statsRes.data as any)?.total_likes || 0,
         });
       } catch {
         // Not critical
@@ -168,6 +170,10 @@ const LandingPage = () => {
             value: stats.totalMatches,
             label: "matches",
             fill: true
+          }, {
+            icon: ThumbsUp,
+            value: stats.totalLikes,
+            label: "likes"
           }, {
             icon: Zap,
             value: stats.totalSwipes,

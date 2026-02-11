@@ -65,6 +65,9 @@ const ProfileSetup = ({ onComplete }: ProfileSetupProps) => {
       <div>
         <h2 className="font-display text-2xl font-bold text-foreground mb-1">The Anti-CV</h2>
         <p className="text-muted-foreground text-sm font-body">No convocation photos allowed.</p>
+        <p className="text-[10px] text-blossom/70 font-body mt-2 italic leading-relaxed">
+          ⚠️ You need a recognizable first name and at least one photo to join the dance floor. Incomplete profiles won't be shown to others.
+        </p>
       </div>
 
       {/* Photo upload */}

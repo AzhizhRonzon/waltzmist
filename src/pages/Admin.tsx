@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Shield, Users, Heart, AlertTriangle, Ban, Trash2, Eye, ArrowLeft, RefreshCw,
   CheckSquare, Square, Search, UserPlus, Download, X, ChevronDown, BarChart3,
-  MessageSquare, Zap, UserX, Filter,
+  MessageSquare, Zap, UserX, Filter, RotateCcw,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useWaltzStore } from "@/context/WaltzStore";
@@ -511,6 +511,16 @@ const AdminPage = () => {
                           <button onClick={() => handleDelete(u.id)} disabled={actionLoading === u.id}
                             className="p-1.5 rounded-lg text-destructive hover:bg-destructive/10 disabled:opacity-40 transition-colors" title="Delete">
                             <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => {
+                              if (!confirm(`Reset swipe history for ${u.name}? All rejected profiles will reappear in their feed.`)) return;
+                              handleAction("reset_swipes", { target_user_id: u.id }, `Swipe history reset for ${u.name}`);
+                            }}
+                            disabled={actionLoading === u.id}
+                            className="p-1.5 rounded-lg text-blue-400 hover:bg-blue-500/10 disabled:opacity-40 transition-colors" title="Reset Swipes"
+                          >
+                            <RotateCcw className="w-3.5 h-3.5" />
                           </button>
                         </div>
                       </div>

@@ -57,7 +57,7 @@ const SecretAdmirerCard = ({ crush, onGuess }: SecretAdmirerCardProps) => {
         </div>
         <div className="mt-3 flex items-center gap-2">
           <Heart className="w-4 h-4 text-blossom" fill="currentColor" />
-          <span className="text-sm text-blossom font-body">It's a match! Start a conversation 🌸</span>
+          <span className="text-sm text-blossom font-body">It's a match! Check your Whispers to chat 🌸</span>
         </div>
       </motion.div>
     );
@@ -111,7 +111,7 @@ const SecretAdmirerCard = ({ crush, onGuess }: SecretAdmirerCardProps) => {
           {showGuess && (
             <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden mt-3">
               <p className="text-xs text-muted-foreground font-body mb-1">Type the name of who you think it is:</p>
-              <p className="text-[10px] text-blossom/60 font-body mb-2 italic">💡 Even a matching first name counts!</p>
+              <p className="text-[10px] text-blossom/60 font-body mb-2 italic">💡 Your guess must match the sender's first name as registered on Waltz. Even just the first name works!</p>
               <div className="flex gap-2">
                 <div className="relative flex-1">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />

@@ -1,26 +1,31 @@
 import { motion } from "framer-motion";
-import { EyeOff, Sparkles } from "lucide-react";
+import { EyeOff, Sparkles, ChevronRight } from "lucide-react";
 
 interface WhoLikedMeProps {
   count: number;
   hints: { program: string; section: string | null; photo_hash: string }[];
+  onOpen: () => void;
 }
 
-const WhoLikedMe = ({ count, hints }: WhoLikedMeProps) => {
+const WhoLikedMe = ({ count, hints, onOpen }: WhoLikedMeProps) => {
   if (count === 0) return null;
 
   return (
-    <motion.div
+    <motion.button
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="glass-strong rounded-2xl p-4 mb-4 blossom-glow border border-blossom/20"
+      onClick={onOpen}
+      className="w-full text-left glass-strong rounded-2xl p-4 mb-4 blossom-glow border border-blossom/20 hover:border-blossom/40 transition-colors group"
     >
-      <div className="flex items-center gap-2 mb-3">
-        <EyeOff className="w-4 h-4 text-blossom" />
-        <h3 className="font-display text-sm text-foreground">
-          {count} {count === 1 ? "person" : "people"} liked you
-        </h3>
-        <Sparkles className="w-3.5 h-3.5 text-blossom/60" />
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <EyeOff className="w-4 h-4 text-blossom" />
+          <h3 className="font-display text-sm text-foreground">
+            {count} {count === 1 ? "person" : "people"} liked you
+          </h3>
+          <Sparkles className="w-3.5 h-3.5 text-blossom/60" />
+        </div>
+        <ChevronRight className="w-4 h-4 text-blossom/60 group-hover:text-blossom transition-colors" />
       </div>
 
       {/* Blurred silhouettes */}
@@ -56,10 +61,10 @@ const WhoLikedMe = ({ count, hints }: WhoLikedMeProps) => {
         ))}
       </div>
 
-      <p className="text-[10px] text-muted-foreground/60 font-body mt-2 italic">
-        Swipe right to find out who they are 👀
+      <p className="text-[10px] text-blossom/60 font-body mt-2 italic">
+        Tap to reveal who they are 👀
       </p>
-    </motion.div>
+    </motion.button>
   );
 };
 
