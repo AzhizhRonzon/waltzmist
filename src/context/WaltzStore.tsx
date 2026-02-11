@@ -146,6 +146,7 @@ interface WaltzStoreContextType {
   isLoggedIn: boolean;
   hasProfile: boolean;
   myProfile: ProfileData | null;
+  isShadowBanned: boolean;
   loading: boolean;
   dataLoading: boolean;
 
@@ -238,6 +239,7 @@ export const WaltzStoreProvider = ({ children }: { children: ReactNode }) => {
 
   const isLoggedIn = !!session?.user;
   const hasProfile = !!myProfile;
+  const isShadowBanned = myProfileRow?.is_shadow_banned === true;
   const canNudgeToday = !nudgesSent.some(n => n.sentAt.toDateString() === new Date().toDateString());
   const swipesRemaining = Math.max(0, DAILY_SWIPE_LIMIT - swipesToday);
 
@@ -669,7 +671,7 @@ export const WaltzStoreProvider = ({ children }: { children: ReactNode }) => {
   return (
     <WaltzStoreContext.Provider
       value={{
-        session, isLoggedIn, hasProfile, myProfile, loading, dataLoading,
+        session, isLoggedIn, hasProfile, myProfile, isShadowBanned, loading, dataLoading,
         signUp, signIn, signOut, completeProfile, updateProfile,
         discoverQueue, swipeLeft, swipeRight, swipesRemaining,
         matches, conversations, sendMessage, loadConversation, loadMoreMessages, markMessagesRead, hasMoreMessages,

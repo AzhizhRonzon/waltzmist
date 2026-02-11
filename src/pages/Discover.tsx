@@ -9,7 +9,7 @@ import BottomNav from "../components/BottomNav";
 import WhoLikedMe from "../components/WhoLikedMe";
 import SkeletonCard from "../components/Skeletons";
 import { ConfettiBurst, LoveBurst } from "../components/EasterEggs";
-import { Sparkles, Settings } from "lucide-react";
+import { Sparkles, Settings, ShieldAlert } from "lucide-react";
 import { useWaltzStore } from "../context/WaltzStore";
 import { useNavigate } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
@@ -18,7 +18,7 @@ import ProfileEditModal from "@/components/ProfileEditModal";
 
 const DiscoverPage = () => {
   const navigate = useNavigate();
-  const { discoverQueue, swipeLeft, swipeRight, swipesRemaining, sendNudge, canNudgeToday, dataLoading, secretAdmirerCount, secretAdmirerHints, fetchSecretAdmirers } = useWaltzStore();
+  const { discoverQueue, swipeLeft, swipeRight, swipesRemaining, sendNudge, canNudgeToday, dataLoading, secretAdmirerCount, secretAdmirerHints, fetchSecretAdmirers, isShadowBanned } = useWaltzStore();
   const [matchedProfile, setMatchedProfile] = useState<{ id: string; name: string } | null>(null);
   const [nudgeTarget, setNudgeTarget] = useState<{ id: string; name: string } | null>(null);
   const [swiping, setSwiping] = useState(false);
@@ -115,6 +115,28 @@ const DiscoverPage = () => {
           <CountdownTimer compact />
         </div>
       </header>
+
+      {/* Shadow ban warning */}
+      {isShadowBanned && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="relative z-20 mx-3 sm:mx-5 mb-2"
+        >
+          <div className="rounded-xl border border-destructive/40 bg-destructive/10 backdrop-blur-sm p-3 flex items-start gap-2.5">
+            <ShieldAlert className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-body font-semibold text-destructive">You've been shadow-banned! 👻</p>
+              <p className="text-xs font-body text-destructive/80 mt-1 leading-relaxed">
+                Please set up your profile properly, with the same dedication that your batchmates put into attendance fraud. 📋✨
+              </p>
+              <p className="text-[10px] font-body text-destructive/60 mt-1.5">
+                Contact admin (Ashish) if you think this is a mistake.
+              </p>
+            </div>
+          </div>
+        </motion.div>
+      )}
 
       {/* Who liked me teaser */}
       <div className="relative z-10 px-3 sm:px-5">
