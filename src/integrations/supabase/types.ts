@@ -211,6 +211,7 @@ export type Database = {
           email_verified: boolean | null
           favorite_trip: string | null
           id: string
+          instagram_handle: string | null
           is_shadow_banned: boolean | null
           maggi_metric: number | null
           name: string
@@ -229,6 +230,7 @@ export type Database = {
           email_verified?: boolean | null
           favorite_trip?: string | null
           id: string
+          instagram_handle?: string | null
           is_shadow_banned?: boolean | null
           maggi_metric?: number | null
           name: string
@@ -247,6 +249,7 @@ export type Database = {
           email_verified?: boolean | null
           favorite_trip?: string | null
           id?: string
+          instagram_handle?: string | null
           is_shadow_banned?: boolean | null
           maggi_metric?: number | null
           name?: string

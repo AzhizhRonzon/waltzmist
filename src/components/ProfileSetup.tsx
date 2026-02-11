@@ -15,6 +15,7 @@ interface ProfileFormData {
   favoriteTrip: string;
   partySpot: string;
   redFlag: string;
+  instagramHandle: string;
   photoUrls: string[];
 }
 
@@ -49,6 +50,7 @@ const ProfileSetup = ({ onComplete }: ProfileSetupProps) => {
     favoriteTrip: "",
     partySpot: "",
     redFlag: "",
+    instagramHandle: "",
     photoUrls: [],
   });
 
@@ -259,6 +261,23 @@ const ProfileSetup = ({ onComplete }: ProfileSetupProps) => {
           className="w-full bg-input rounded-xl px-4 py-3 text-foreground font-body placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-maroon/30"
           maxLength={120}
         />
+      </div>
+
+      {/* Instagram */}
+      <div>
+        <label className="text-sm text-muted-foreground font-body block mb-2">Instagram (optional)</label>
+        <div className="flex items-center gap-2">
+          <span className="text-muted-foreground font-body text-sm">@</span>
+          <input
+            type="text"
+            value={form.instagramHandle}
+            onChange={(e) => setForm({ ...form, instagramHandle: e.target.value.replace(/^@/, "") })}
+            placeholder="your_username"
+            className="w-full bg-input rounded-xl px-4 py-3 text-foreground font-body placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-blossom/30"
+            maxLength={30}
+          />
+        </div>
+        <p className="text-[10px] text-muted-foreground/60 font-body mt-1">Others can tap to visit your IG from your card</p>
       </div>
     </motion.div>,
   ];

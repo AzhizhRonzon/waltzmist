@@ -542,7 +542,8 @@ const AdminPage = () => {
                                 {u.favorite_trip && <div className="glass rounded-lg p-2"><span className="text-muted-foreground">🏔 Trip:</span> <span className="text-foreground">{u.favorite_trip}</span></div>}
                                 {u.party_spot && <div className="glass rounded-lg p-2"><span className="text-muted-foreground">🎉 Party:</span> <span className="text-foreground">{u.party_spot}</span></div>}
                                 {u.red_flag && <div className="glass rounded-lg p-2 col-span-2"><span className="text-destructive">🚩 Red Flag:</span> <span className="text-foreground italic">{u.red_flag}</span></div>}
-                                <div className="glass rounded-lg p-2"><span className="text-muted-foreground">🌙 Night Owl:</span> <span className="text-foreground">{u.maggi_metric ?? 50}%</span></div>
+                                {u.maggi_metric !== null && <div className="glass rounded-lg p-2"><span className="text-muted-foreground">🌙 Night Owl:</span> <span className="text-foreground">{u.maggi_metric}%</span></div>}
+                                {(u as any).instagram_handle && <div className="glass rounded-lg p-2"><span className="text-muted-foreground">📸 IG:</span> <span className="text-foreground">@{(u as any).instagram_handle}</span></div>}
                                 <div className="glass rounded-lg p-2"><span className="text-muted-foreground">📅 Joined:</span> <span className="text-foreground">{new Date(u.created_at).toLocaleDateString()}</span></div>
                               </div>
                               <div className="mt-2 text-[9px] text-muted-foreground/40 font-mono break-all">ID: {u.id}</div>

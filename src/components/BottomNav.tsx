@@ -14,6 +14,7 @@ const BottomNav = () => {
 
   const NAV_ITEMS = [
     { path: "/discover", icon: Compass, label: "Discover", badge: 0 },
+    { path: "/matches", icon: Heart, label: "Matches", badge: matches.filter(m => !m.lastMessage).length },
     { path: "/matches", icon: Heart, label: "Matches", badge: 0 },
     { path: "/whispers", icon: MessageCircle, label: "Whispers", badge: unseenNudges + totalUnread },
     { path: "/crushes", icon: Eye, label: "Crushes", badge: unrevealedCrushes },

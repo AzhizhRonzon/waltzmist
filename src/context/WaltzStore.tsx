@@ -17,6 +17,7 @@ export interface ProfileData {
   favoriteTrip: string;
   partySpot: string;
   redFlag?: string;
+  instagramHandle?: string;
   compatibility: number;
   isOnline?: boolean;
 }
@@ -120,6 +121,7 @@ function dbProfileToApp(row: Tables<'profiles'>, compatibility = 50): ProfileDat
     favoriteTrip: row.favorite_trip || "",
     partySpot: row.party_spot || "",
     redFlag: row.red_flag || undefined,
+    instagramHandle: row.instagram_handle || undefined,
     compatibility,
     isOnline: false,
   };
@@ -331,7 +333,7 @@ export const WaltzStoreProvider = ({ children }: { children: ReactNode }) => {
 
       const [profileRes, allProfilesRes, swipesRes, matchesRes, nudgeSentRes, nudgeRecvRes, crushSentRes, crushRecvRes, blocksRes, todaySwipesRes] = await Promise.all([
         supabase.from("profiles").select("*").eq("id", userId).maybeSingle(),
-        supabase.from("profiles").select("id, name, program, section, sex, age, maggi_metric, favorite_trip, party_spot, red_flag, photo_urls, is_shadow_banned, created_at, updated_at, email, email_verified").eq("is_shadow_banned", false),
+        supabase.from("profiles").select("id, name, program, section, sex, age, maggi_metric, favorite_trip, party_spot, red_flag, photo_urls, is_shadow_banned, created_at, updated_at, email, email_verified, instagram_handle").eq("is_shadow_banned", false),
         supabase.from("swipes").select("swiped_id").eq("swiper_id", userId),
         supabase.from("matches").select("*").or(`user1_id.eq.${userId},user2_id.eq.${userId}`),
         supabase.from("nudges").select("*").eq("sender_id", userId),
@@ -358,6 +360,11 @@ export const WaltzStoreProvider = ({ children }: { children: ReactNode }) => {
         .filter(p => profileRow ? p.sex !== profileRow.sex : true)
         .filter(p => !blockedIdSet.has(p.id))
         .map(p => dbProfileToApp(p, profileRow ? computeCompat(profileRow, p) : 50));
+      // Randomize queue order (Fisher-Yates shuffle)
+      for (let i = queue.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [queue[i], queue[j]] = [queue[j], queue[i]];
+      }
       setDiscoverQueue(queue);
       setSwipesToday(todaySwipesRes.count || 0);
 
@@ -438,6 +445,7 @@ export const WaltzStoreProvider = ({ children }: { children: ReactNode }) => {
       party_spot: data.partySpot || "",
       red_flag: data.redFlag || null,
       photo_urls: data.photoUrls && data.photoUrls.length > 0 ? data.photoUrls : null,
+      instagram_handle: data.instagramHandle || null,
     }, { onConflict: 'id' });
     if (error) {
       toast({ title: "Profile creation failed", description: error.message, variant: "destructive" });
@@ -457,6 +465,7 @@ export const WaltzStoreProvider = ({ children }: { children: ReactNode }) => {
       party_spot: data.partySpot || "",
       red_flag: data.redFlag || null,
       photo_urls: data.photoUrls && data.photoUrls.length > 0 ? data.photoUrls : null,
+      instagram_handle: data.instagramHandle || null,
     }).eq("id", session.user.id);
     if (error) {
       toast({ title: "Update failed", description: error.message, variant: "destructive" });

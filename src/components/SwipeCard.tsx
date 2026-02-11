@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { motion, AnimatePresence, PanInfo } from "framer-motion";
-import { Heart, X, Sparkles, Zap, ChevronLeft, ChevronRight, Star, Moon, Sun } from "lucide-react";
+import { Heart, X, Sparkles, Zap, ChevronLeft, ChevronRight, Star, Moon, Sun, Instagram } from "lucide-react";
 import type { ProfileData } from "../context/WaltzStore";
 
 interface SwipeCardProps {
@@ -204,11 +204,25 @@ const SwipeCard = ({ profile, onSwipeLeft, onSwipeRight, onSuperlike, onNudge, i
                   {profile.batch}{profile.section ? ` · Sec ${profile.section}` : ""}
                 </p>
               </div>
-              {hasMultiplePhotos && (
-                <span className="text-[9px] font-body text-foreground/50 glass rounded-full px-2 py-0.5 mb-1">
-                  {photoIndex + 1}/{profile.photos.length}
-                </span>
-              )}
+              <div className="flex items-center gap-1.5 mb-1">
+                {profile.instagramHandle && (
+                  <a
+                    href={`https://instagram.com/${profile.instagramHandle.replace(/^@/, "")}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    className="glass rounded-full p-1.5 hover:bg-blossom/10 transition-colors"
+                    aria-label="Instagram"
+                  >
+                    <Instagram className="w-3.5 h-3.5 text-blossom" />
+                  </a>
+                )}
+                {hasMultiplePhotos && (
+                  <span className="text-[9px] font-body text-foreground/50 glass rounded-full px-2 py-0.5">
+                    {photoIndex + 1}/{profile.photos.length}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
         </div>

@@ -61,7 +61,16 @@ const MatchesPage = () => {
           </motion.div>
         ) : (
           <div className="grid grid-cols-2 gap-2 sm:gap-3">
-            {matches.map((match, i) => (
+            {[...matches]
+              .sort((a, b) => {
+                // New matches (no messages) first, then by most recent activity
+                if (!a.lastMessage && b.lastMessage) return -1;
+                if (a.lastMessage && !b.lastMessage) return 1;
+                if (a.unread > 0 && b.unread === 0) return -1;
+                if (b.unread > 0 && a.unread === 0) return 1;
+                return b.matchedAt.getTime() - a.matchedAt.getTime();
+              })
+              .map((match, i) => (
               <motion.button key={match.id} initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: i * 0.06 }}
                 onClick={() => navigate(`/chat/${match.id}`)}
                 className="glass rounded-2xl overflow-hidden group hover:blossom-glow transition-all border border-transparent hover:border-blossom/20 relative">
@@ -70,13 +79,25 @@ const MatchesPage = () => {
                   <div className="absolute inset-0 bg-gradient-to-t from-card via-transparent to-transparent" />
                   <div className="absolute bottom-2.5 sm:bottom-3 left-2.5 sm:left-3 right-2.5 sm:right-3">
                     <h3 className="font-display text-sm sm:text-lg text-foreground leading-tight truncate">{match.profile.name}</h3>
-                    <p className="text-[9px] sm:text-[11px] text-muted-foreground font-body">{match.profile.batch}{match.lastMessage ? "" : " · New match! 🌸"}</p>
+                    <p className="text-[9px] sm:text-[11px] text-muted-foreground font-body truncate">
+                      {match.lastMessage ? match.lastMessage : "New match! Say hi 🌸"}
+                    </p>
                   </div>
                   {match.unread > 0 && (
                     <div className="absolute top-2 right-2 w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold text-primary-foreground"
                       style={{ background: "linear-gradient(135deg, hsl(var(--blossom)), hsl(var(--glow)))" }}>
                       {match.unread}
                     </div>
+                  )}
+                  {!match.lastMessage && (
+                    <motion.div
+                      animate={{ scale: [1, 1.2, 1] }}
+                      transition={{ duration: 2, repeat: Infinity }}
+                      className="absolute top-2 right-2 w-5 h-5 rounded-full flex items-center justify-center"
+                      style={{ background: "linear-gradient(135deg, hsl(var(--blossom)), hsl(var(--glow)))" }}
+                    >
+                      <Sparkles className="w-3 h-3 text-primary-foreground" />
+                    </motion.div>
                   )}
                   <div className="absolute top-2 left-2 glass rounded-full px-1.5 sm:px-2 py-0.5 flex items-center gap-0.5 sm:gap-1">
                     <Sparkles className="w-2.5 h-2.5 text-blossom" />
