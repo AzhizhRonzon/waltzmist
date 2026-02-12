@@ -148,7 +148,7 @@ function timeAgo(d: string): string {
 }
 
 // ─── Constants ──────────────────────────────────────────────────
-const DAILY_SWIPE_LIMIT = 50;
+const DAILY_SWIPE_LIMIT = 100;
 const CHAT_PAGE_SIZE = 30;
 
 // ─── Context Interface ──────────────────────────────────────────
