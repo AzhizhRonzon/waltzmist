@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import SwipeCard, { SwipeActions } from "../components/SwipeCard";
 import MatchOverlay from "../components/MatchOverlay";
@@ -7,7 +7,6 @@ import FallingPetals from "../components/FallingPetals";
 import CountdownTimer from "../components/CountdownTimer";
 import BottomNav from "../components/BottomNav";
 import WhoLikedMe from "../components/WhoLikedMe";
-import SecretAdmirerRevealModal from "../components/SecretAdmirerRevealModal";
 import SkeletonCard from "../components/Skeletons";
 import { ConfettiBurst, LoveBurst } from "../components/EasterEggs";
 import { Sparkles, Settings, ShieldAlert } from "lucide-react";
@@ -19,7 +18,7 @@ import ProfileEditModal from "@/components/ProfileEditModal";
 
 const DiscoverPage = () => {
   const navigate = useNavigate();
-  const { discoverQueue, swipeLeft, swipeRight, swipesRemaining, sendNudge, canNudgeToday, dataLoading, secretAdmirerCount, secretAdmirerHints, fetchSecretAdmirers, isShadowBanned } = useWaltzStore();
+  const { discoverQueue, swipeLeft, swipeRight, swipesRemaining, sendNudge, canNudgeToday, dataLoading, secretAdmirerCount, isShadowBanned } = useWaltzStore();
   const [matchedProfile, setMatchedProfile] = useState<{ id: string; name: string } | null>(null);
   const [nudgeTarget, setNudgeTarget] = useState<{ id: string; name: string } | null>(null);
   const [swiping, setSwiping] = useState(false);
@@ -27,9 +26,6 @@ const DiscoverPage = () => {
   const [showConfetti, setShowConfetti] = useState(false);
   const [loveBurst, setLoveBurst] = useState<{ x: number; y: number } | null>(null);
   const [superlikedId, setSuperlikedId] = useState<string | null>(null);
-  const [showAdmirerReveal, setShowAdmirerReveal] = useState(false);
-
-  useEffect(() => { fetchSecretAdmirers(); }, []);
 
   const isPanicMode = useMemo(() => {
     const now = new Date();
@@ -83,7 +79,6 @@ const DiscoverPage = () => {
     setSwiping(false);
   };
 
-  // Double-tap like easter egg
   const handleDoubleTap = (e: React.MouseEvent) => {
     setLoveBurst({ x: e.clientX, y: e.clientY });
     setTimeout(() => setLoveBurst(null), 800);
@@ -99,11 +94,10 @@ const DiscoverPage = () => {
         <div className="flex-shrink-0">
           <h1 className="font-display text-xl sm:text-2xl font-bold blossom-text">WALTZ</h1>
           <p className="text-[9px] sm:text-[10px] text-muted-foreground font-body uppercase tracking-widest mt-0.5">
-            {isPanicMode ? "⚡ PANIC MODE ⚡" : "Find your partner"}
+            {isPanicMode ? "⚡ LAST CHANCE ⚡" : "Find your partner"}
           </p>
         </div>
         <div className="flex items-center gap-1.5 sm:gap-3 flex-shrink-0">
-          {/* Swipe counter */}
           <div className="glass rounded-full px-2 py-1 flex items-center gap-1">
             <span className={`text-[11px] font-body font-semibold ${swipesRemaining <= 5 ? "text-destructive" : "text-blossom"}`}>
               {swipesRemaining}
@@ -113,18 +107,12 @@ const DiscoverPage = () => {
           <button onClick={() => setShowEditProfile(true)} className="p-1.5 sm:p-2 rounded-full hover:bg-secondary/50 transition-colors" aria-label="Settings">
             <Settings className="w-4 h-4 text-muted-foreground" />
           </button>
-          {/* Compact countdown that fits on mobile */}
           <CountdownTimer compact />
         </div>
       </header>
 
-      {/* Shadow ban warning */}
       {isShadowBanned && (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="relative z-20 mx-3 sm:mx-5 mb-2"
-        >
+        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="relative z-20 mx-3 sm:mx-5 mb-2">
           <div className="rounded-xl border border-destructive/40 bg-destructive/10 backdrop-blur-sm p-3 flex items-start gap-2.5">
             <ShieldAlert className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
             <div>
@@ -140,9 +128,9 @@ const DiscoverPage = () => {
         </motion.div>
       )}
 
-      {/* Who liked me teaser */}
+      {/* Passive "liked you" banner — no reveal */}
       <div className="relative z-10 px-3 sm:px-5">
-        <WhoLikedMe count={secretAdmirerCount} hints={secretAdmirerHints} onOpen={() => setShowAdmirerReveal(true)} />
+        <WhoLikedMe count={secretAdmirerCount} />
       </div>
 
       <div className="flex-1 relative z-10 px-3 sm:px-5 pb-2" onDoubleClick={handleDoubleTap}>
@@ -156,9 +144,6 @@ const DiscoverPage = () => {
               </motion.div>
               <h2 className="font-display text-2xl text-foreground mb-2">Daily Limit Reached</h2>
               <p className="text-muted-foreground font-body text-sm">You've used all your swipes today.<br />Come back tomorrow for more! 🌸</p>
-              <p className="text-[10px] text-muted-foreground/50 font-body mt-3">
-                Pro tip: Quality over quantity. Every swipe counts.
-              </p>
             </div>
           ) : discoverQueue.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-center">
@@ -227,10 +212,6 @@ const DiscoverPage = () => {
 
       <AnimatePresence>
         {showEditProfile && <ProfileEditModal onClose={() => setShowEditProfile(false)} />}
-      </AnimatePresence>
-
-      <AnimatePresence>
-        {showAdmirerReveal && <SecretAdmirerRevealModal onClose={() => { setShowAdmirerReveal(false); fetchSecretAdmirers(); }} />}
       </AnimatePresence>
     </div>
   );

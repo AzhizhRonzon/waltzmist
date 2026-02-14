@@ -24,6 +24,7 @@ const CountdownTimer = ({ compact = false }: CountdownTimerProps) => {
 
       if (diff <= 0) {
         setIsOver(true);
+        setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 });
         return;
       }
 
@@ -43,12 +44,11 @@ const CountdownTimer = ({ compact = false }: CountdownTimerProps) => {
   if (isOver) {
     return (
       <p className="font-display text-sm italic text-blossom animate-pulse-glow whitespace-nowrap">
-        The music has stopped 🌸
+        Happy Valentine's Day 🌹
       </p>
     );
   }
 
-  // Compact mode: single line for tight spaces (discover header, chat header)
   if (compact) {
     return (
       <div className="flex items-center gap-1 font-body tabular-nums text-blossom text-xs font-semibold whitespace-nowrap">

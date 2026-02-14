@@ -4,27 +4,31 @@ import FallingPetals from "../components/FallingPetals";
 import CountdownTimer from "../components/CountdownTimer";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Users, Heart, Zap, Sparkles, Shield, MessageCircle, Eye, Trophy, Clock, ThumbsUp } from "lucide-react";
+import { Users, Heart, Zap, Sparkles, Shield, MessageCircle, Eye, Trophy, Clock, ThumbsUp, Instagram } from "lucide-react";
 import { getRandomQuip } from "../components/EasterEggs";
+
 interface LiveStats {
   totalUsers: number;
   totalMatches: number;
   totalSwipes: number;
   totalLikes: number;
 }
-const TESTIMONIALS = [{
-  text: "Found my Waltz partner in 3 swipes. The mess will never feel the same.",
-  emoji: "💕"
-}, {
-  text: "My red flag brought all the matches to the yard.",
-  emoji: "🚩"
-}, {
-  text: "Turns out we both hated the same prof. Match made in heaven.",
-  emoji: "✨"
-}, {
-  text: "Swiped right because of the Maggi metric. No regrets.",
-  emoji: "🍜"
-}];
+
+const TESTIMONIALS = [
+  { text: "Found my Waltz partner in 3 swipes. The mess will never feel the same.", emoji: "💕" },
+  { text: "My red flag brought all the matches to the yard.", emoji: "🚩" },
+  { text: "Turns out we both hated the same prof. Match made in heaven.", emoji: "✨" },
+  { text: "Swiped right because of the Maggi metric. No regrets.", emoji: "🍜" },
+  { text: "We bonded over cold water in the hostel. That's true love.", emoji: "🥶" },
+  { text: "They said 'I don't network at parties.' Instant right swipe.", emoji: "🎉" },
+  { text: "Our first conversation was about mess food. Still going strong.", emoji: "🍛" },
+  { text: "Matched with someone who also skips 8 AM classes. Soulmates.", emoji: "😴" },
+  { text: "They had the same red flag as me. We cancelled each other out.", emoji: "🏳️" },
+  { text: "The only ROI from MBA that actually matters.", emoji: "📈" },
+  { text: "Better love story than any case study ever written.", emoji: "📚" },
+  { text: "We met on Waltz. Our parents think it was at a 'networking event'.", emoji: "🤝" },
+];
+
 const LandingPage = () => {
   const navigate = useNavigate();
   const [entered, setEntered] = useState(false);
@@ -32,31 +36,34 @@ const LandingPage = () => {
   const [testimonialIndex, setTestimonialIndex] = useState(0);
   const [tapCount, setTapCount] = useState(0);
   const [easterEgg, setEasterEgg] = useState(false);
+
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const [countRes, statsRes] = await Promise.all([supabase.from("profiles").select("*", {
-          count: "exact",
-          head: true
-        }), supabase.rpc("get_campus_stats")]);
-        setStats({
-          totalUsers: countRes.count || 0,
-          totalMatches: (statsRes.data as any)?.total_matches || 0,
-          totalSwipes: (statsRes.data as any)?.total_swipes || 0,
-          totalLikes: (statsRes.data as any)?.total_likes || 0,
-        });
+        const { data } = await supabase.rpc("get_campus_stats");
+        if (data) {
+          const d = data as any;
+          setStats({
+            totalUsers: d.total_users || 0,
+            totalMatches: d.total_matches || 0,
+            totalSwipes: d.total_swipes || 0,
+            totalLikes: d.total_likes || 0,
+          });
+        }
       } catch {
         // Not critical
       }
     };
     fetchStats();
   }, []);
+
   useEffect(() => {
     const interval = setInterval(() => {
       setTestimonialIndex(i => (i + 1) % TESTIMONIALS.length);
     }, 4000);
     return () => clearInterval(interval);
   }, []);
+
   const handleLogoTap = () => {
     const next = tapCount + 1;
     setTapCount(next);
@@ -66,119 +73,65 @@ const LandingPage = () => {
       setTimeout(() => setEasterEgg(false), 3000);
     }
   };
+
   const handleEnter = () => {
     setEntered(true);
     setTimeout(() => navigate("/login"), 400);
   };
-  const features = [{
-    icon: Zap,
-    title: "Swipe & Match",
-    desc: "Discover people from your campus. Right swipe to vibe."
-  }, {
-    icon: MessageCircle,
-    title: "Whispers & Crushes",
-    desc: "Send anonymous nudges or secret crush hints."
-  }, {
-    icon: Shield,
-    title: "Campus Only",
-    desc: "Verified @iimshillong.ac.in emails. No outsiders."
-  }, {
-    icon: Sparkles,
-    title: "Waltz Wrapped",
-    desc: "Your campus dating stats — anonymized & fun."
-  }, {
-    icon: Eye,
-    title: "Secret Admirers",
-    desc: "See blurred hints about who liked you. Swipe to reveal."
-  }, {
-    icon: Clock,
-    title: "Cinderella Mode",
-    desc: "The music stops on Feb 14. Every match counts."
-  }];
-  return <div className="min-h-screen breathing-bg flex flex-col items-center relative overflow-hidden">
+
+  const features = [
+    { icon: Zap, title: "Swipe & Match", desc: "Discover people from your campus. Right swipe to vibe." },
+    { icon: MessageCircle, title: "Whispers & Crushes", desc: "Send anonymous nudges or secret crush hints." },
+    { icon: Shield, title: "Campus Only", desc: "Verified @iimshillong.ac.in emails. No outsiders." },
+    { icon: Sparkles, title: "Waltz Wrapped", desc: "Your campus dating stats — anonymized & fun." },
+    { icon: Eye, title: "Secret Admirers", desc: "Someone liked you? Keep swiping to find out who." },
+    { icon: Heart, title: "Valentine's Special", desc: "Find your date before the night ends. 🌹" },
+  ];
+
+  return (
+    <div className="min-h-screen breathing-bg flex flex-col items-center relative overflow-hidden">
       <FallingPetals count={18} />
 
-      <motion.div initial={{
-      opacity: 0
-    }} animate={{
-      opacity: entered ? 0 : 1
-    }} transition={{
-      duration: 0.5
-    }} className="relative z-10 w-full max-w-lg px-4 sm:px-6">
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: entered ? 0 : 1 }}
+        transition={{ duration: 0.5 }}
+        className="relative z-10 w-full max-w-lg px-4 sm:px-6"
+      >
         {/* Hero Section */}
         <div className="text-center pt-10 sm:pt-14 pb-6">
-          <motion.div initial={{
-          opacity: 0,
-          y: 40
-        }} animate={{
-          opacity: 1,
-          y: 0
-        }} transition={{
-          duration: 1,
-          ease: "easeOut"
-        }}>
-            <motion.div animate={{
-            scale: [1, 1.03, 1]
-          }} transition={{
-            duration: 4,
-            repeat: Infinity,
-            ease: "easeInOut"
-          }} className="mb-4" onClick={handleLogoTap}>
+          <motion.div initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 1, ease: "easeOut" }}>
+            <motion.div animate={{ scale: [1, 1.03, 1] }} transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }} className="mb-4" onClick={handleLogoTap}>
               <h1 className="font-display text-6xl sm:text-8xl font-bold blossom-text tracking-tight cursor-pointer select-none">
                 WALTZ
               </h1>
             </motion.div>
 
             <AnimatePresence>
-              {easterEgg && <motion.p initial={{
-              opacity: 0,
-              y: -10
-            }} animate={{
-              opacity: 1,
-              y: 0
-            }} exit={{
-              opacity: 0
-            }} className="text-blossom font-body text-xs mb-2">
+              {easterEgg && (
+                <motion.p initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="text-blossom font-body text-xs mb-2">
                   🎉 You found a secret! The devs are watching. Always.
-                </motion.p>}
+                </motion.p>
+              )}
             </AnimatePresence>
 
-            <p className="text-muted-foreground font-body text-base sm:text-lg mb-1">Who are you going with?</p>
-            <p className="text-muted-foreground/50 font-body text-xs sm:text-sm italic">There's no Bajrang Dal in Chillong D:</p>
+            <p className="text-muted-foreground font-body text-base sm:text-lg mb-1">Happy Valentine's Day 🌹</p>
+            <p className="text-muted-foreground/50 font-body text-xs sm:text-sm italic">Who are you going with tonight?</p>
           </motion.div>
         </div>
 
-        {/* Live Stats Bar */}
-        {stats && (stats.totalUsers > 0 || stats.totalMatches > 0) && <motion.div initial={{
-        opacity: 0,
-        y: 15
-      }} animate={{
-        opacity: 1,
-        y: 0
-      }} transition={{
-        delay: 0.3,
-        duration: 0.7
-      }} className="glass-strong rounded-2xl p-3 sm:p-4 mb-6">
-            <p className="text-[10px] text-muted-foreground font-body uppercase tracking-widest text-center mb-3">Live from the Clouds</p>
+        {/* Live Stats Bar — always shown, no auth required */}
+        {stats && (
+          <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3, duration: 0.7 }} className="glass-strong rounded-2xl p-3 sm:p-4 mb-6">
+            <p className="text-[10px] text-muted-foreground font-body uppercase tracking-widest text-center mb-3">Live from the Clouds 🌹</p>
             <div className="flex items-center justify-around">
-              {[{
-            icon: Users,
-            value: stats.totalUsers,
-            label: "dancers"
-          }, {
-            icon: Heart,
-            value: stats.totalMatches,
-            label: "matches",
-            fill: true
-          }, {
-            icon: ThumbsUp,
-            value: stats.totalLikes,
-            label: "likes"
-          }, {
-            icon: Zap,
-            value: stats.totalSwipes,
-            label: "swipes"
-          }].map((s, i) => <div key={s.label} className="flex items-center gap-1.5 sm:gap-2">
+              {[
+                { icon: Users, value: stats.totalUsers, label: "dancers" },
+                { icon: Heart, value: stats.totalMatches, label: "matches", fill: true },
+                { icon: ThumbsUp, value: stats.totalLikes, label: "likes" },
+                { icon: Zap, value: stats.totalSwipes, label: "swipes" },
+              ].map((s, i) => (
+                <div key={s.label} className="flex items-center gap-1.5 sm:gap-2">
                   {i > 0 && <div className="w-px h-8 bg-border mr-1.5 sm:mr-2" />}
                   <div className="flex flex-col items-center">
                     <div className="flex items-center gap-1">
@@ -187,48 +140,26 @@ const LandingPage = () => {
                     </div>
                     <span className="text-[9px] sm:text-[10px] text-muted-foreground font-body mt-0.5">{s.label}</span>
                   </div>
-                </div>)}
+                </div>
+              ))}
             </div>
-          </motion.div>}
+          </motion.div>
+        )}
 
         {/* Countdown */}
-        <motion.div initial={{
-        opacity: 0,
-        y: 20
-      }} animate={{
-        opacity: 1,
-        y: 0
-      }} transition={{
-        delay: 0.4,
-        duration: 0.8
-      }} className="mb-6 flex justify-center">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4, duration: 0.8 }} className="mb-6 flex justify-center">
           <div className="glass-strong rounded-2xl px-4 sm:px-6 py-3 sm:py-4 inline-block">
             <p className="text-[9px] sm:text-[10px] text-muted-foreground uppercase tracking-[0.2em] font-body mb-2 sm:mb-3 text-center">
-              The music stops in
+              Valentine's countdown
             </p>
             <CountdownTimer />
           </div>
         </motion.div>
 
         {/* Rotating Testimonial */}
-        <motion.div initial={{
-        opacity: 0
-      }} animate={{
-        opacity: 1
-      }} transition={{
-        delay: 0.5
-      }} className="mb-6">
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }} className="mb-6">
           <AnimatePresence mode="wait">
-            <motion.div key={testimonialIndex} initial={{
-            opacity: 0,
-            y: 10
-          }} animate={{
-            opacity: 1,
-            y: 0
-          }} exit={{
-            opacity: 0,
-            y: -10
-          }} className="glass rounded-2xl p-4 text-center">
+            <motion.div key={testimonialIndex} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="glass rounded-2xl p-4 text-center">
               <p className="text-sm text-foreground font-body italic">
                 "{TESTIMONIALS[testimonialIndex].text}"
               </p>
@@ -238,142 +169,70 @@ const LandingPage = () => {
         </motion.div>
 
         {/* CTA */}
-        <motion.div initial={{
-        opacity: 0,
-        y: 20
-      }} animate={{
-        opacity: 1,
-        y: 0
-      }} transition={{
-        delay: 0.7,
-        duration: 0.8
-      }} className="text-center mb-8 sm:mb-10">
-          <motion.button whileHover={{
-          scale: 1.04
-        }} whileTap={{
-          scale: 0.97
-        }} onClick={handleEnter} className="btn-waltz text-base sm:text-lg px-10 sm:px-12 py-3.5 sm:py-4">
-            Enter the Dance Floor 🌸
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.7, duration: 0.8 }} className="text-center mb-8 sm:mb-10">
+          <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }} onClick={handleEnter} className="btn-waltz text-base sm:text-lg px-10 sm:px-12 py-3.5 sm:py-4">
+            Enter the Dance Floor 🌹
           </motion.button>
-          <p className="text-xs text-muted-foreground/40 font-body mt-3">This one's not on the badminton court</p>
+          <p className="text-xs text-muted-foreground/40 font-body mt-3">Your Valentine is one swipe away</p>
         </motion.div>
 
         {/* Feature Grid */}
-        <motion.div initial={{
-        opacity: 0,
-        y: 20
-      }} animate={{
-        opacity: 1,
-        y: 0
-      }} transition={{
-        delay: 0.9,
-        duration: 0.8
-      }} className="grid grid-cols-2 gap-2.5 sm:gap-3 mb-8 sm:mb-10">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.9, duration: 0.8 }} className="grid grid-cols-2 gap-2.5 sm:gap-3 mb-8 sm:mb-10">
           {features.map((f, i) => {
-          const Icon = f.icon;
-          return <motion.div key={f.title} initial={{
-            opacity: 0,
-            y: 15
-          }} animate={{
-            opacity: 1,
-            y: 0
-          }} transition={{
-            delay: 1 + i * 0.08,
-            duration: 0.5
-          }} className="glass rounded-2xl p-3 sm:p-4">
+            const Icon = f.icon;
+            return (
+              <motion.div key={f.title} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1 + i * 0.08, duration: 0.5 }} className="glass rounded-2xl p-3 sm:p-4">
                 <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-blossom mb-1.5 sm:mb-2" />
                 <h3 className="font-display text-xs sm:text-sm text-foreground mb-0.5 sm:mb-1">{f.title}</h3>
                 <p className="text-[10px] sm:text-[11px] text-muted-foreground font-body leading-relaxed">{f.desc}</p>
-              </motion.div>;
-        })}
+              </motion.div>
+            );
+          })}
         </motion.div>
 
         {/* How it works */}
-        <motion.div initial={{
-        opacity: 0
-      }} animate={{
-        opacity: 1
-      }} transition={{
-        delay: 1.3,
-        duration: 0.8
-      }} className="mb-8 sm:mb-10">
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.3, duration: 0.8 }} className="mb-8 sm:mb-10">
           <h2 className="font-display text-lg sm:text-xl text-foreground text-center mb-4 sm:mb-6">How It Works</h2>
           <div className="space-y-3 sm:space-y-4">
-            {[{
-            step: "1",
-            text: "Sign up with your @iimshillong.ac.in email",
-            emoji: "📧"
-          }, {
-            step: "2",
-            text: "Build your Anti-CV — no LinkedIn vibes here",
-            emoji: "🎨"
-          }, {
-            step: "3",
-            text: "Swipe, match, and start the Waltz",
-            emoji: "💃"
-          }, {
-            step: "4",
-            text: "Send anonymous crushes & nudges",
-            emoji: "💌"
-          }, {
-            step: "5",
-            text: "Music stops on Feb 14 — make it count",
-            emoji: "⏰"
-          }].map((item, i) => <motion.div key={item.step} initial={{
-            opacity: 0,
-            x: -20
-          }} animate={{
-            opacity: 1,
-            x: 0
-          }} transition={{
-            delay: 1.4 + i * 0.1,
-            duration: 0.4
-          }} className="flex items-center gap-3 sm:gap-4">
-                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center flex-shrink-0 text-xs sm:text-sm font-bold" style={{
-              background: "linear-gradient(135deg, hsl(var(--blossom)), hsl(var(--glow)))",
-              color: "hsl(var(--primary-foreground))"
-            }}>
+            {[
+              { step: "1", text: "Sign up with your @iimshillong.ac.in email", emoji: "📧" },
+              { step: "2", text: "Build your Anti-CV — no LinkedIn vibes here", emoji: "🎨" },
+              { step: "3", text: "Swipe, match, and start the Waltz", emoji: "💃" },
+              { step: "4", text: "Send anonymous crushes & nudges", emoji: "💌" },
+              { step: "5", text: "Find your Valentine before midnight 🌹", emoji: "❤️" },
+            ].map((item, i) => (
+              <motion.div key={item.step} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 1.4 + i * 0.1, duration: 0.4 }} className="flex items-center gap-3 sm:gap-4">
+                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center flex-shrink-0 text-xs sm:text-sm font-bold" style={{ background: "linear-gradient(135deg, hsl(var(--blossom)), hsl(var(--glow)))", color: "hsl(var(--primary-foreground))" }}>
                   {item.step}
                 </div>
                 <p className="text-xs sm:text-sm text-muted-foreground font-body flex-1">{item.text}</p>
                 <span className="text-base sm:text-lg">{item.emoji}</span>
-              </motion.div>)}
+              </motion.div>
+            ))}
           </div>
         </motion.div>
 
         {/* Social proof */}
-        <motion.div initial={{
-        opacity: 0
-      }} animate={{
-        opacity: 1
-      }} transition={{
-        delay: 1.6,
-        duration: 0.8
-      }} className="glass rounded-2xl p-4 sm:p-5 mb-8 sm:mb-10 text-center">
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.6, duration: 0.8 }} className="glass rounded-2xl p-4 sm:p-5 mb-8 sm:mb-10 text-center">
           <Trophy className="w-5 h-5 sm:w-6 sm:h-6 text-blossom mx-auto mb-2" />
           <h3 className="font-display text-base sm:text-lg text-foreground mb-1">Built for IIM Shillong</h3>
           <p className="text-[11px] sm:text-xs text-muted-foreground font-body">
-            Every profile is verified. Every match is real. Every swipe stays in the Clouds. 🌸
+            Every profile is verified. Every match is real. Every swipe stays in the Clouds. 🌹
           </p>
         </motion.div>
 
         {/* Footer */}
-        <motion.div initial={{
-        opacity: 0
-      }} animate={{
-        opacity: 1
-      }} transition={{
-        delay: 1.8,
-        duration: 1
-      }} className="text-center pb-8">
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.8, duration: 1 }} className="text-center pb-8">
           <p className="text-[11px] text-muted-foreground/30 font-body italic">
             Made for IIM Shillong, by Ashish, with boredom at heart
           </p>
           <p className="text-[10px] text-muted-foreground/20 font-body mt-1">
-            v2.0 · {getRandomQuip()}
+            v2.1 · Valentine's Edition 🌹 · {getRandomQuip()}
           </p>
         </motion.div>
       </motion.div>
-    </div>;
+    </div>
+  );
 };
+
 export default LandingPage;

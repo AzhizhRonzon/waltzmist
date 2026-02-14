@@ -6,12 +6,11 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useState, useEffect, lazy, Suspense } from "react";
 import { motion } from "framer-motion";
 import ErrorBoundary from "./components/ErrorBoundary";
-import CinderellaScreen from "./components/CinderellaScreen";
 import ColdWeatherOverlay, { useColdWeatherMode } from "./components/ColdWeatherOverlay";
 import { WaltzStoreProvider, useWaltzStore } from "./context/WaltzStore";
 import { useOfflineDetection } from "./hooks/useOfflineDetection";
 
-const CINDERELLA_DATE = new Date("2026-02-14T12:00:00+05:30").getTime();
+// Cinderella date removed — platform stays active
 
 const queryClient = new QueryClient();
 
@@ -47,18 +46,9 @@ const LoadingScreen = () => (
 
 const AppContent = () => {
   const { isLoggedIn, hasProfile, loading, dataLoading } = useWaltzStore();
-  const [isCinderella, setIsCinderella] = useState(false);
   const { isCold, temp } = useColdWeatherMode();
   useOfflineDetection();
 
-  useEffect(() => {
-    const check = () => setIsCinderella(Date.now() >= CINDERELLA_DATE);
-    check();
-    const interval = setInterval(check, 10000);
-    return () => clearInterval(interval);
-  }, []);
-
-  if (isCinderella) return <CinderellaScreen />;
   if (loading) return <LoadingScreen />;
   if (isLoggedIn && dataLoading) return <LoadingScreen />;
 
