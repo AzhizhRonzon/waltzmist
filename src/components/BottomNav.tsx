@@ -14,9 +14,8 @@ const BottomNav = () => {
 
   const NAV_ITEMS = [
     { path: "/discover", icon: Compass, label: "Discover", badge: 0 },
-    { path: "/matches", icon: Heart, label: "Matches", badge: matches.filter(m => !m.lastMessage).length },
-    { path: "/matches", icon: Heart, label: "Matches", badge: 0 },
     { path: "/whispers", icon: MessageCircle, label: "Whispers", badge: unseenNudges + totalUnread },
+    { path: "/matches", icon: Heart, label: "Matches", badge: matches.filter(m => !m.lastMessage).length },
     { path: "/crushes", icon: Eye, label: "Crushes", badge: unrevealedCrushes },
     { path: "/wrapped", icon: BarChart3, label: "Wrapped", badge: 0 },
   ];
@@ -30,7 +29,7 @@ const BottomNav = () => {
 
           return (
             <button
-              key={item.path}
+              key={item.label}
               onClick={() => navigate(item.path)}
               className="relative flex flex-col items-center gap-0.5 py-1.5 sm:py-2 px-2 sm:px-3 rounded-2xl transition-colors min-w-0"
             >
